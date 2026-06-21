@@ -3,7 +3,7 @@
 
 // ==================== 认证 ====================
 const AUTH_COOKIE = 'ltv_auth';
-const AUTH_PWD = 'digital';
+const AUTH_PWD = 'YOUR_PASSWORD';
 
 function checkAuth(request) {
   const cookieHeader = request.headers.get('Cookie') || '';
