@@ -152,12 +152,19 @@ wrangler deploy tmdb-worker.js
 
 ## 本地开发
 
-```bash
-# 安装依赖
-npm install
+### Node.js
 
-# 启动本地服务器
+```bash
+npm install
 npm start
+# → http://localhost:3000
+```
+
+### Docker
+
+```bash
+docker build -t leontv .
+docker run -p 3000:3000 leontv
 # → http://localhost:3000
 ```
 
