@@ -905,7 +905,7 @@ var CAT_PARAMS={
 var catPage={},activeCat=null,catTimer=null,catLoading=false,catCache={};
 var SERIES_CATS={marvel:1,dc:1,starwars:1,harrypotter:1,jurassic:1,bond:1,lotr:1};
 var TMDB='https://your-tmdb-worker.workers.dev';
-function tmdbFetch(path,timeout){var sep=path.indexOf('?')>=0?'&':'?';var url=TMDB+path+sep+'pwd=YOUR_PASSWORD';if(!timeout)return fetch(url);var ctrl=new AbortController();var timer=setTimeout(function(){ctrl.abort();},timeout);return fetch(url,{signal:ctrl.signal}).finally(function(){clearTimeout(timer);});}
+function tmdbFetch(path,timeout){var sep=path.indexOf('?')>=0?'&':'?';var url=TMDB+path+sep+'pwd='+(localStorage.getItem('ms-login-pwd')||'');if(!timeout)return fetch(url);var ctrl=new AbortController();var timer=setTimeout(function(){ctrl.abort();},timeout);return fetch(url,{signal:ctrl.signal}).finally(function(){clearTimeout(timer);});}
 
 async function loadCategory(cat,pill,forceReload){
   abortAll();catAbort=new AbortController();var sig=catAbort.signal;
@@ -1028,7 +1028,7 @@ function renderCatGrid(items,cat,append){
   var h='';
   for(var i=0;i<items.length;i++){
     var item=items[i],title=item.title||item.name||'',rating=item.vote_average?Number(item.vote_average).toFixed(1):'?';
-    var poster=item.poster_path?'<img class="cat-card-img" src="'+TMDB+'/image/t/p/w300'+item.poster_path+'?pwd=YOUR_PASSWORD" loading="lazy" onerror="this.style.background=\'var(--border)\'">':'<div class="cat-card-img cat-card-noposter"><i data-lucide="clapperboard"></i></div>';
+    var poster=item.poster_path?'<img class="cat-card-img" src="'+TMDB+'/image/t/p/w300'+item.poster_path+'?pwd='+(localStorage.getItem('ms-login-pwd')||'')+'" loading="lazy" onerror="this.style.background=\'var(--border)\'">':'<div class="cat-card-img cat-card-noposter"><i data-lucide="clapperboard"></i></div>';
     var date=(item.release_date||item.first_air_date||'').substring(0,7);
     h+='<div class="cat-card" onclick="searchCatItem(\''+escAttr(title)+'\')" title="'+esc(title)+'">'+poster+'<div class="cat-card-info"><div class="cat-card-title">'+esc(title)+'</div><div class="cat-card-meta">'+(date?'<span>'+date+'</span>':'')+'<span class="cat-card-rating">⭐ '+rating+'</span></div></div></div>';
   }
