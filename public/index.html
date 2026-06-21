@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<!-- LeonTV — 2026-06-21 移动端优化版 -->
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>LeonTV</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.14/dist/hls.min.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+:root{--bg:#EAF3F7;--card:#fff;--text:#1A2332;--text2:#5A6B7A;--text3:#8A9BAA;--border:#D5E3EC;--accent:#0066CC;--green:#34c759;--red:#ff3b30;--ep-bg:#DEE9F0;--ep-hover:#CDDCE8;--radius:12px}
+[data-theme="dark"]{--bg:#1c1c1e;--card:#2c2c2e;--text:#f5f5f7;--text2:#98989d;--text3:#636366;--border:#38383a;--accent:#0a84ff;--green:#30d158;--red:#ff453a;--ep-bg:#1a2540;--ep-hover:#253558}
+*{margin:0;padding:0;box-sizing:border-box}
+svg.lucide{width:1em;height:1em;stroke-width:2;vertical-align:-.15em;flex-shrink:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s;-webkit-font-smoothing:antialiased}
+.header{height:56px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border);backdrop-filter:blur(20px)}
+[data-theme="light"] .header{background:rgba(218,232,240,.9)}[data-theme="dark"] .header{background:rgba(44,44,46,.8)}
+.header-logo{font-size:22px;font-weight:700}.header-logo span{color:#FF8C00}
+.header-right{display:flex;align-items:center;gap:6px}
+.icon-btn{width:36px;height:36px;border-radius:50%;border:none;background:transparent;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2)}
+.icon-btn:hover{background:var(--border)}
+.site-badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:12px;background:rgba(52,199,89,.15);color:var(--green)}
+.main{max-width:900px;margin:0 auto;padding:20px;width:100%}
+.search-box{display:flex;gap:10px;margin-bottom:16px;position:relative}
+.search-input{flex:1;height:46px;padding:0 16px;border-radius:23px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:15px;outline:none}
+.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,113,227,.12)}
+.search-input::placeholder{color:var(--text3)}
+.btn{height:46px;padding:0 24px;border-radius:23px;border:none;font-size:15px;font-weight:600;cursor:pointer;background:var(--accent);color:#fff;white-space:nowrap;flex-shrink:0}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.status-bar{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:14px;font-size:13px;color:var(--text2);min-height:20px}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0}
+.status-dot.ok{background:var(--green)}.status-dot.err{background:var(--red)}
+.lock-banner{text-align:center;padding:40px 20px;color:var(--text2);display:none}
+.loading-box{text-align:center;padding:60px 20px;color:var(--text2);display:none}
+.spinner{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-box{text-align:center;padding:80px 20px;color:var(--text2);display:block}
+.cat-bar{display:flex;gap:10px;margin-bottom:16px;align-items:center;overflow:visible}
+.cat-nav{display:flex;gap:8px;overflow-x:auto;padding:7px 0 4px 0;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex:1;min-width:0}
+.cat-nav::-webkit-scrollbar{display:none}
+.region-select{padding:5px 10px;border-radius:14px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;cursor:pointer;outline:none;flex-shrink:0}
+.region-select.active{background:var(--ep-bg);font-weight:700}
+.cat-pill{flex-shrink:0;padding:5px 12px;border-radius:14px;border:1px solid var(--border);background:var(--card);color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s;line-height:1.4}
+.cat-pill:hover{border-color:var(--accent);color:var(--accent)}
+.cat-pill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.cat-pill.drag-over{border-color:var(--accent);transform:scale(1.05)}
+.cat-pill.dragging{opacity:.4}
+.cat-pill-add{background:transparent;border-style:dashed;color:var(--text3)}
+.cat-pill-add:hover{color:var(--accent);border-color:var(--accent)}
+.cat-pill-home{background:#FF8C00!important;color:#fff!important;border-color:#FF8C00!important;font-weight:700}
+.cat-pill-home:hover{opacity:.85;color:#fff!important;border-color:#FF8C00!important}
+.cat-pill-del{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--red);color:#fff;font-size:10px;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;line-height:1}
+.cat-pill.custom:hover .cat-pill-del{display:flex}
+.cat-pill.custom{position:relative}
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px}
+.cat-card{border-radius:10px;overflow:hidden;cursor:pointer;transition:transform .2s;background:var(--card);border:1px solid var(--border)}
+.cat-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.1)}
+.cat-card-img{width:100%;aspect-ratio:2/3;object-fit:cover;background:var(--border);display:block}
+.cat-card-noposter{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--ep-bg),var(--border));color:var(--text3)}
+.cat-card-noposter .lucide{width:32px;height:32px;opacity:.5}
+.cat-card-info{padding:8px 10px 10px}
+.cat-card-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+.cat-card-meta{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:6px}
+.cat-card-rating{font-weight:700;color:#E6A000}
+.cat-more{grid-column:1/-1;display:flex;align-items:center;justify-content:center;min-height:60px;color:var(--text3);font-size:13px;cursor:pointer;border-radius:10px;border:2px dashed var(--border);transition:all .2s}
+.cat-more:hover{border-color:var(--accent);color:var(--accent)}
+.movie-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.movie-top{display:flex;gap:12px;margin-bottom:10px}
+.poster-wrap{position:relative;flex-shrink:0;width:160px;height:224px}
+.movie-poster{width:100%;height:100%;border-radius:9px;object-fit:cover;background:var(--border);display:block}
+.poster-fb{display:flex;align-items:center;justify-content:center;color:var(--text3)}
+.poster-fb .lucide{width:44px;height:44px}
+.poster-rating{position:absolute;bottom:8px;right:8px;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#F5C518,#E6A000);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.4);z-index:2;letter-spacing:-.5px}
+.poster-rating.wide{width:auto;padding:0 7px;border-radius:17px}
+.poster-lightbox{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;cursor:pointer}
+.poster-lightbox.open{display:flex}
+.poster-lightbox img{max-width:92vw;max-height:92vh;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.5);object-fit:contain}
+.poster-lightbox .pl-close{position:absolute;top:16px;right:20px;width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.poster-lightbox .pl-close:hover{background:rgba(255,255,255,.3)}
+.movie-info{flex:1;min-width:0;overflow:hidden;word-break:break-all}
+.movie-title{font-size:16px;font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.movie-meta{font-size:12px;color:var(--text2);margin-bottom:4px;display:flex;flex-wrap:wrap;gap:2px 10px}
+.movie-summary{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ep-count-badge{font-weight:700;color:var(--accent)}
+.src-count{color:var(--text2)}
+.fast-badge{color:var(--green);font-weight:600}
+.tmdb-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#fff;background:linear-gradient(135deg,#F5C518,#E6A000);padding:3px 10px;border-radius:20px;margin-left:6px;vertical-align:middle;white-space:nowrap;box-shadow:0 1px 3px rgba(245,197,24,.25)}
+.douban-link{display:inline-block;font-size:11px;font-weight:600;color:#fff;background:#07a046;padding:2px 8px;border-radius:20px;text-decoration:none;vertical-align:middle;margin-left:4px;white-space:nowrap;transition:all .15s}
+.douban-link:hover{background:#0ab853;box-shadow:0 1px 4px rgba(7,160,70,.35)}
+.douban-link:visited{color:#fff}
+.scroll-top-btn{position:fixed;bottom:80px;right:24px;z-index:150;width:44px;height:44px;border-radius:50%;border:none;background:var(--accent);color:#fff;font-size:20px;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,102,204,.3);transition:all .2s}
+.scroll-top-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,102,204,.45)}
+.scroll-top-btn.show{display:flex}
+.ep-section{margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.ep-section-title{font-size:12px;color:var(--text2);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.ep-reverse-btn{font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:3px;white-space:nowrap}
+.ep-reverse-btn:hover{border-color:var(--accent);color:var(--accent)}
+.ep-grid{display:flex;flex-wrap:wrap;gap:5px;max-height:220px;overflow-y:auto;align-content:flex-start;padding-right:4px}
+.ep-grid::-webkit-scrollbar{width:4px}
+.ep-grid::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.ep-btn{min-width:42px;height:32px;padding:0 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;text-align:center}
+.ep-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--ep-bg)}
+.ep-btn.now{border-color:var(--accent);background:var(--accent);color:#fff}
+.src-select-row{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:var(--text3)}
+.history-drop{display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px 10px;margin-top:2px;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.history-pills-wrap{display:flex;flex-wrap:wrap;gap:6px;max-height:106px;overflow-y:auto;padding:6px}
+.history-section-divider{height:1px;background:var(--border);margin:4px 0}
+.history-pill{position:relative;display:inline-flex;align-items:center;padding:4px 18px 4px 10px;border-radius:14px;border:1px solid var(--border);background:var(--bg);font-size:12px;color:var(--text);cursor:pointer;white-space:nowrap;transition:all .12s}
+.history-pill:hover{border-color:var(--accent);color:var(--accent)}
+.history-pill .hx{position:absolute;top:-5px;right:-5px;width:15px;height:15px;border-radius:50%;background:var(--text3);color:#fff;font-size:9px;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;line-height:1}
+.history-pill:hover .hx{display:flex}
+.history-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.history-head span{font-size:11px;color:var(--text3)}
+.history-clear-btn{font-size:11px;background:none;border:none;color:var(--text3);cursor:pointer}
+.history-clear-btn:hover{color:var(--red)}
+.src-select-row select{font-size:11px;padding:3px 6px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--text);max-width:200px}
+.login-overlay{position:fixed;inset:0;z-index:400;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.login-overlay.hidden{display:none}
+.login-title{font-size:24px;font-weight:700;color:var(--text)}.login-title span{color:var(--accent)}
+.login-input{width:220px;height:46px;padding:0 16px;border-radius:23px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:15px;outline:none;text-align:center}
+.login-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,113,227,.12)}
+.login-msg{font-size:12px;color:var(--red);height:16px}
+.player-overlay{position:fixed;inset:0;z-index:300;background:rgba(234,243,247,.96);display:none;align-items:center;justify-content:center;flex-direction:column;transition:background .3s}
+.player-overlay.open{display:flex}
+.player-overlay.cinema{background:rgba(0,0,0,.95)}
+.player-wrap{width:92%;max-width:1000px;background:#fff;border-radius:8px;overflow:hidden;position:relative;transition:background .3s;box-shadow:0 4px 24px rgba(0,0,0,.06)}
+.player-overlay.cinema .player-wrap{background:#111}
+.player-bar{position:absolute;top:6px;right:56px;z-index:10;display:flex;gap:10px}
+.player-close,.player-cinema-btn{width:32px;height:32px;border-radius:50%;border:none;background:rgba(0,0,0,.25);color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;backdrop-filter:blur(4px)}
+.player-close:hover,.player-cinema-btn:hover{background:rgba(255,255,255,.25);color:#fff}
+.player-overlay.cinema .player-close,.player-overlay.cinema .player-cinema-btn{background:rgba(255,255,255,.12);color:#eee}
+.player-overlay.cinema .player-close:hover,.player-overlay.cinema .player-cinema-btn:hover{background:rgba(255,255,255,.25);color:#fff}
+.player-video{width:100%;display:block;max-height:70vh;background:#000}
+.player-info{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#DCE4EA;color:#5A6B7A;font-size:12px;flex-wrap:wrap;gap:8px;border-top:1px solid #D5E3EC;transition:background .3s,color .3s,border-color .3s}
+.player-overlay.cinema .player-info{background:#1a1a1a;color:#ccc;border-top-color:#333}
+.modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:16px;width:90%;max-width:500px;box-shadow:0 8px 32px rgba(0,0,0,.2);overflow:hidden}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border)}
+.modal-header h3{font-size:16px;font-weight:600}
+.modal-close{width:28px;height:28px;border-radius:50%;border:none;background:var(--bg);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--text2)}
+.modal-body{padding:16px 18px 20px}
+.modal-tabs{display:flex;margin-bottom:16px;border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+.modal-tab{flex:1;padding:10px 0;text-align:center;font-size:13px;font-weight:500;cursor:pointer;background:var(--bg);color:var(--text2);border:none;display:flex;align-items:center;justify-content:center;gap:4px}
+.modal-tab.active{background:var(--accent);color:#fff}
+.modal-tab:not(:last-child){border-right:1px solid var(--border)}
+.modal .form-group{margin-bottom:12px}
+.modal label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text2)}
+.modal input,.modal textarea{width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;outline:none}
+.modal textarea{height:120px;resize:vertical;font-size:12px}
+.modal input:focus,.modal textarea:focus{border-color:var(--accent)}
+.modal .hint{font-size:11px;color:var(--text3);margin:6px 0 8px 0}
+.modal .msg{font-size:13px;margin:12px 0;padding:8px 12px;border-radius:6px;display:none}
+.modal .msg.ok{display:block;background:rgba(52,199,89,.1);color:var(--green)}
+.modal .msg.err{display:block;background:rgba(255,59,48,.1);color:var(--red)}
+.modal .msg.loading{display:flex;align-items:center;gap:8px;background:rgba(0,102,204,.08);color:var(--accent);font-weight:500}
+.import-spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
+.site-footer{text-align:center;padding:40px 20px 30px;color:var(--text3);font-size:11px;line-height:1.8;max-width:900px;margin:0 auto;opacity:.7}
+.results-header{font-size:13px;color:var(--text2);margin-bottom:12px;text-align:center}
+.results-header b{color:var(--text)}
+@media(max-width:768px){
+  .header{height:50px;padding:0 12px}.header-logo{font-size:21px}.main{padding:10px}
+  .search-box{gap:8px;margin-bottom:8px}.search-input{font-size:16px;height:46px;padding:0 14px}
+  .btn{height:46px;padding:0 20px;font-size:15px}
+  .cat-bar{gap:6px;margin-bottom:10px}.cat-pill{padding:6px 12px;font-size:14px}
+  .region-select{padding:6px 10px;font-size:13px}
+  .status-bar{font-size:13px}.results-header{font-size:14px}
+  .poster-wrap{width:110px;height:154px}.poster-rating{width:26px;height:26px;font-size:11px}
+  .movie-title{font-size:17px}.movie-meta{font-size:14px}.movie-summary{font-size:14px}
+  .movie-card{padding:12px;margin-bottom:10px}
+  .ep-btn{min-width:40px;height:36px;font-size:13px;padding:0 10px}.ep-grid{max-height:220px;gap:5px}
+  .cat-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+  .cat-card-title{font-size:14px}.cat-card-info{padding:8px}.cat-card-meta{font-size:12px}
+  .player-video{max-height:50vh}.player-info{padding:8px 12px;font-size:13px}
+  .modal{width:94%}.modal-header h3{font-size:17px}.modal-body{padding:14px}
+  .lock-banner p{font-size:16px!important}.site-footer{font-size:12px;padding-top:160px;padding-bottom:12px}
+  .history-pill{font-size:13px;padding:5px 20px 5px 12px}.history-drop{padding:10px 12px}
+.scroll-top-btn{bottom:80px;right:16px;width:40px;height:40px;font-size:18px}
+}
+@media(max-width:480px){
+  .header{height:46px;padding:0 8px}.header-logo{font-size:18px}
+  .icon-btn{width:38px;height:38px}.main{padding:6px}
+  .search-box{gap:6px;margin-bottom:6px}.search-input{font-size:16px;height:44px;padding:0 12px}
+  .btn{height:44px;padding:0 16px;font-size:15px}
+  .cat-bar{gap:5px;margin-bottom:8px}.cat-pill{padding:6px 10px;font-size:14px}
+  .region-select{padding:5px 9px;font-size:13px}
+  .status-bar{font-size:12px}.results-header{font-size:13px}
+  .movie-card{padding:10px;margin-bottom:8px;overflow:hidden}.movie-top{gap:6px}
+  .poster-wrap{width:90px;height:126px;flex-shrink:0}
+  .poster-rating{width:20px;height:20px;font-size:9px;bottom:3px;right:3px}
+  .movie-title{font-size:15px}.movie-meta{font-size:12px}.movie-summary{font-size:12px}
+  .movie-info{overflow:hidden}
+  .ep-btn{min-width:38px;height:38px;font-size:13px;padding:0 10px;border-radius:8px}.ep-grid{max-height:200px;gap:6px}
+  .cat-grid{grid-template-columns:repeat(3,1fr);gap:8px}
+  .cat-card-title{font-size:13px}.cat-card-info{padding:6px 7px}.cat-card-meta{font-size:11px}
+  .player-video{max-height:45vh}.player-info{padding:6px 8px;font-size:13px}
+  .player-close,.player-cinema-btn{width:28px;height:28px}.player-bar{top:4px;right:50px;gap:8px}
+  .modal{width:96%}.modal-header h3{font-size:16px}
+  .modal input,.modal textarea{font-size:14px}.lock-banner p{font-size:15px!important}
+  .cat-pill-del{width:14px;height:14px;font-size:9px}.cat-pill-home{padding:6px 10px!important}
+  .src-select-row{font-size:12px}.src-select-row select{font-size:12px;max-width:160px}
+  .history-pill{font-size:13px;padding:5px 20px 5px 12px}.history-drop{padding:10px 12px}.history-pills-wrap{max-height:146px}
+.scroll-top-btn{bottom:90px;right:12px;width:42px;height:42px;font-size:18px}
+.site-footer{padding-top:140px;padding-bottom:12px}
+}
+</style>
+</head>
+<body>
+
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-title"><i data-lucide="film"></i> Leon<span>TV</span></div>
+  <input class="login-input" id="loginInput" type="password" placeholder="请输入密码" onkeydown="if(event.key==='Enter')doLogin()" autofocus>
+  <button class="btn" onclick="doLogin()" style="width:220px;">登 录</button>
+  <div class="login-msg" id="loginMsg"></div>
+</div>
+
+<header class="header">
+  <span class="header-logo" onclick="resetHome()" style="cursor:pointer;"><i data-lucide="film"></i> Leon<span>TV</span></span>
+  <div class="header-right">
+    <span class="site-badge" id="siteBadge" style="display:none"></span>
+    <button class="icon-btn" id="themeBtn" onclick="toggleTheme()">☀️</button>
+    <button class="icon-btn" onclick="openSettings()"><i data-lucide="bolt"></i></button>
+  </div>
+</header>
+
+<div class="main">
+  <div class="search-box" id="searchBox">
+    <div style="flex:1;position:relative;min-width:0;display:flex">
+      <input class="search-input" id="searchInput" placeholder="输入电影或电视剧名称..." onkeydown="if(event.key==='Enter')doSearch()" style="width:100%">
+      <div class="history-drop" id="historyDrop">
+        <div class="history-head"><span>搜索记录</span><button onclick="event.stopPropagation();clearHistory()" class="history-clear-btn">全部清除</button></div>
+        <div class="history-pills-wrap" id="historyList"></div>
+      </div>
+    </div>
+    <button class="btn" id="searchBtn" onclick="doSearch()">搜索</button>
+  </div>
+  <div class="cat-bar">
+    <button class="cat-pill cat-pill-home" onclick="resetHome()" title="回到首页">Home</button>
+    <select class="region-select active" id="regionSelect">
+      <option value="CN" style="font-weight:700;">中国</option>
+      <option value="HK">香港</option><option value="TW">台湾</option>
+      <option value="US">美国</option><option value="GB">英国</option>
+      <option value="KR">韩国</option><option value="JP">日本</option>
+      <option value="FR|DE|IT|ES|GB">欧洲</option>
+      <option value="TH|IN|ID|VN|PH">其他</option>
+    </select>
+    <div class="cat-nav" id="catNav">
+      <button class="cat-pill" data-cat="trending_movie" draggable="true">热门电影</button>
+      <button class="cat-pill" data-cat="trending_tv" draggable="true">正在播出</button>
+      <button class="cat-pill" data-cat="top_rated" draggable="true">高分神作</button>
+      <button class="cat-pill" data-cat="now_playing" draggable="true">正在上映</button>
+      <button class="cat-pill" data-cat="action" draggable="true">动作片</button>
+      <button class="cat-pill" data-cat="comedy" draggable="true">喜剧</button>
+      <button class="cat-pill" data-cat="scifi" draggable="true">科幻</button>
+      <button class="cat-pill" data-cat="horror" draggable="true">恐怖</button>
+      <button class="cat-pill" data-cat="doc" draggable="true">纪录片</button>
+      <button class="cat-pill" data-cat="marvel" draggable="true">漫威</button>
+      <button class="cat-pill" data-cat="dc" draggable="true">DC</button>
+      <button class="cat-pill" data-cat="starwars" draggable="true">星球大战</button>
+      <button class="cat-pill" data-cat="harrypotter" draggable="true">哈利波特</button>
+      <button class="cat-pill" data-cat="jurassic" draggable="true">侏罗纪</button>
+      <button class="cat-pill" data-cat="bond" draggable="true">007</button>
+      <button class="cat-pill" data-cat="lotr" draggable="true">指环王</button>
+      <button class="cat-pill cat-pill-add" id="addCatBtn" onclick="addCustomCat()" title="自定义分类">+ 自定义</button>
+    </div>
+  </div>
+  <div class="lock-banner" id="lockBanner">
+    <p style="font-size:48px;margin-bottom:12px;color:var(--text3);"><i data-lucide="lock"></i></p>
+    <p style="font-size:16px;font-weight:600;margin-bottom:6px;">请先加载站点配置</p>
+    <p style="font-size:13px;color:var(--text3);">点击右上角 <i data-lucide="bolt" style="width:1em;height:1em;vertical-align:-.15em;"></i> 导入站点JSON，激活全部功能</p>
+  </div>
+  <div class="status-bar" id="statusBar" style="display:none"></div>
+  <div class="loading-box" id="loadingBox">
+    <div class="spinner"></div><p>搜索中...</p>
+  </div>
+  <div class="empty-box" id="emptyBox">
+    <p style="font-size:40px;margin-bottom:8px;color:var(--text3);"><i data-lucide="video"></i></p>
+    <p style="font-size:15px;font-weight:500;">开始搜索电影</p>
+    <p style="font-size:12px;margin-top:4px;">先 <i data-lucide="settings"></i> 加载站点配置</p>
+  </div>
+  <div id="resultsArea"></div>
+</div>
+
+<footer class="site-footer">
+  <p>数据来源于第三方API，不存储任何影视资源，仅供技术学习</p>
+  <p>内容来自互联网接口，版权归原权利人所有 · <a href="DISCLAIMER.md" style="color:var(--accent);">免责声明</a></p>
+  <p style="opacity:.5;">LeonTV</p>
+</footer>
+
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-header"><h3><i data-lucide="settings"></i> 站点配置 <span style="font-size:11px;color:var(--text3);font-weight:400;">v1.0</span></h3><button class="modal-close" onclick="closeSettings()"><i data-lucide="x"></i></button></div>
+    <div class="modal-body">
+      <div class="modal-tabs">
+        <button class="modal-tab active" id="tabUrl" onclick="switchTab('url')"><i data-lucide="link"></i> URL</button>
+        <button class="modal-tab" id="tabJson" onclick="switchTab('json')"><i data-lucide="clipboard"></i> JSON</button>
+      </div>
+      <div id="panelUrl">
+        <div class="form-group"><label>JSON文件地址（推荐）</label><input id="sitesUrl" placeholder="https://..."></div>
+        <p class="hint">输入后点加载，自动保存到本地，下次无需重新输入</p>
+        <button class="btn" onclick="loadUrl()" style="width:100%">加载</button>
+      </div>
+      <div id="panelJson" style="display:none">
+        <div class="form-group"><label>粘贴JSON（宽泛格式，自动识别 name/api）</label><textarea id="sitesJson" placeholder='任意格式：JSON数组、对象、YAML、甚至松散文本，只要包含name和api即可'></textarea></div>
+        <button class="btn" onclick="loadJson()" style="width:100%">加载</button>
+      </div>
+      <div class="msg" id="settingsMsg"></div>
+      <div id="siteListPanel" style="margin-top:12px;display:none;padding:10px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="var l=document.getElementById('siteList');var arrow=document.getElementById('siteArrow');l.style.display=l.style.display==='none'?'block':'none';arrow.textContent=l.style.display==='none'?'▶':'▼';">
+          <span style="font-size:13px;font-weight:600;color:var(--text2);"><span id="siteCount">0</span> 个站点<span id="siteTime" style="font-weight:400;font-size:11px;"></span></span>
+          <span id="siteArrow" style="font-size:10px;color:var(--text3);">▶</span>
+        </div>
+        <div id="siteList" style="display:none;max-height:180px;overflow-y:auto;margin-top:8px;font-size:13px;color:var(--text);line-height:2;padding:4px 0;border-top:1px solid var(--border);"></div>
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <button class="cat-pill" onclick="clearSites()" style="font-size:11px;color:var(--red);border-color:var(--red);">清除站点数据</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="player-overlay" id="playerOverlay" onclick="if(event.target===this)closePlayer()">
+  <div class="player-wrap">
+    <div class="player-bar">
+      <button class="player-cinema-btn" id="cinemaBtn" onclick="toggleCinema()" title="影院模式"><i data-lucide="clapperboard"></i></button>
+      <button class="player-close" onclick="event.stopPropagation();closePlayer()"><i data-lucide="x"></i></button>
+    </div>
+    <video class="player-video" id="videoPlayer" controls autoplay playsinline x-webkit-airplay="allow"></video>
+    <div class="player-info"><span id="playerTitle"></span></div>
+  </div>
+</div>
+
+<div class="poster-lightbox" id="posterLightbox" onclick="closePoster()">
+  <button class="pl-close" onclick="closePoster()"><i data-lucide="x"></i></button>
+  <img id="posterLightboxImg" src="" alt="">
+</div>
+
+<button class="scroll-top-btn" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到顶部"><i data-lucide="chevron-up"></i></button>
+
+<script>
+// ========== LOGIN ==========
+(function(){
+  var a=localStorage.getItem('ms-auth');
+  if(a&&Date.now()-parseInt(a)<7*24*3600*1000) document.getElementById('loginOverlay').classList.add('hidden');
+})();
+function doLogin(){
+  var v=document.getElementById('loginInput').value;
+  if(v==='digital'){localStorage.setItem('ms-auth',Date.now());document.getElementById('loginOverlay').classList.add('hidden');document.getElementById('loginMsg').textContent='';}
+  else{document.getElementById('loginMsg').textContent='密码错误';document.getElementById('loginInput').value='';}
+}
+
+// ========== THEME ==========
+(function(){
+  var t=localStorage.getItem('ms-theme')||'light';
+  document.documentElement.setAttribute('data-theme',t);
+  document.getElementById('themeBtn').innerHTML = t==='dark'?'<i data-lucide="moon"></i>':'<i data-lucide="sun"></i>';
+  lucide.createIcons();
+})();
+function toggleTheme(){
+  var t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',t);
+  document.getElementById('themeBtn').innerHTML = t==='dark'?'<i data-lucide="moon"></i>':'<i data-lucide="sun"></i>';
+  // 浅色主题自动退出影院模式
+  if(t==='light'){cinemaMode=false;localStorage.setItem('ms-cinema','0');applyCinema();}
+  lucide.createIcons();localStorage.setItem('ms-theme',t);
+}
+
+// ========== SETTINGS ==========
+function openSettings(){document.getElementById('settingsModal').classList.add('open');}
+function closeSettings(){document.getElementById('settingsModal').classList.remove('open');}
+function switchTab(t){
+  document.getElementById('tabUrl').classList.toggle('active',t==='url');
+  document.getElementById('tabJson').classList.toggle('active',t==='json');
+  document.getElementById('panelUrl').style.display=t==='url'?'block':'none';
+  document.getElementById('panelJson').style.display=t==='json'?'block':'none';
+  document.getElementById('settingsMsg').className='msg';
+}
+function smsg(type,txt){var e=document.getElementById('settingsMsg');e.textContent=txt;e.className='msg '+type;}
+function smsgLoading(txt){var e=document.getElementById('settingsMsg');e.innerHTML='<span class="import-spinner"></span> '+(txt||'数据导入中…');e.className='msg loading';}
+
+// ========== 宽泛格式解析 ==========
+function flexibleParseSites(raw){
+  var sites=[],seen=new Set();
+  // 去重key：保留 ?url= / ?format= 等关键参数，只去掉 ?ac=list 这种
+  function dedupeKey(api){return api.replace(/[\?&]ac=list(?=&|$)/,'').replace(/[\?&]ac=detail(?=&|$)/,'').replace(/[,\}\]"')。，]+$/,'');}
+  function add(name,api){var k=dedupeKey(api);if(!seen.has(k)&&k.startsWith('http')){seen.add(k);sites.push({name:name||'未命名',api:k});}}
+
+  // 1) 标准JSON：数组/对象/sites/data/api_site 字段
+  try{
+    var p=JSON.parse(raw);
+    var arr=Array.isArray(p)?p:(p.sites||p.data||p.api_site||(p.api?[p]:[]));
+    // api_site 是 {domain: {name,api}} 格式，转数组
+    if(p.api_site&&!Array.isArray(p.api_site)){arr=[];Object.keys(p.api_site).forEach(function(k){arr.push(p.api_site[k]);});}
+    if(!Array.isArray(arr)) arr=[];
+    arr.forEach(function(s){if(s&&s.api&&typeof s.api==='string') add(s.name||s.key||'',s.api);});
+  }catch(e){}
+
+  // 2) 按对象块配对：在每对 {} 内找 name+api，跨行也无所谓
+  var m,pos=0,reBlock=/\{[\s\S]*?\}/g;
+  while((m=reBlock.exec(raw))!==null){
+    var block=m[0];
+    var nmM=/"name"\s*:\s*"([^"]+)"/.exec(block);
+    var apM=/"api"\s*:\s*"(https?:\/\/[^"]+)"/.exec(block);
+    if(apM) add(nmM?nmM[1]:'',apM[1]);
+  }
+  // 如果上面没找到，全局收集再配对（数量相等时可靠）
+  if(sites.length===0){
+    var namesAll=[],apisAll=[];
+    var reName=/"name"\s*:\s*"([^"]+)"/g,reApi=/"api"\s*:\s*"(https?:\/\/[^"]+)"/g;
+    while((m=reName.exec(raw))!==null) namesAll.push(m[1]);
+    while((m=reApi.exec(raw))!==null) apisAll.push(m[1]);
+    for(var i=0;i<Math.max(namesAll.length,apisAll.length);i++){
+      var ap=apisAll[i];if(ap) add(namesAll[i]||'',ap);
+    }
+  }
+
+  // 3) 域名key对象: "domain":{"name":"x","api":"https://..."}
+  var re3=/"([^"]+)"\s*:\s*\{[\s\S]*?"api"\s*:\s*"(https?:\/\/[^"]+)"/g;
+  while((m=re3.exec(raw))!==null){
+    // 尝试取同一对象里的name
+    var block=raw.substring(m.index,re3.lastIndex);
+    var bm=/"name"\s*:\s*"([^"]+)"/.exec(block);
+    add(bm?bm[1]:m[1],m[2]);
+  }
+
+  // 4) 无引号: name: xxx 和 api: https://...
+  var re4=/\bapi\s*:?\s*(https?:\/\/[^\s\n,}]+)/gi;
+  var re5=/\bname\s*:?\s*(.+?)(?:\n|$|\bapi\b)/gi;
+  var apis2=[],names2=[];
+  while((m=re4.exec(raw))!==null) apis2.push(m[1].replace(/[,\}\]"')]+$/,''));
+  while((m=re5.exec(raw))!==null){var v=m[1].trim().replace(/[,\}\]"')]+$/,'');if(v&&v.length<80) names2.push(v);}
+  for(var i=0;i<Math.max(names2.length,apis2.length);i++){
+    var nm2=names2[i]||'',ap2=apis2[i];
+    if(ap2) add(nm2,ap2);
+  }
+
+  // 5) 兜底刮URL：只要包含 /api/ 或 provide/vod 等路径标记的
+  var re6=/https?:\/\/[^\s"'<>一-鿿　-〿＀-￯]+/g;
+  while((m=re6.exec(raw))!==null){
+    var url=m[0].replace(/[,\}\]"')。，]+$/,'');
+    // 必须有路径部分（不是裸域名）且包含API特征
+    if(url.split('/').length>3&&(url.indexOf('/api')>=0||url.indexOf('provide')>=0||url.indexOf('php')>=0)){
+      try{var u=new URL(url);add(u.hostname.replace(/^(www|api|m)\./,''),url);}catch(e){}
+    }
+  }
+  // 6) sites太少则更宽：任何带路径的URL都试
+  if(sites.length<2){
+    var re7=/https?:\/\/[^\s"'<>]+\/[^\s"'<>]+/g;
+    while((m=re7.exec(raw))!==null){
+      var u2=m[0].replace(/[,\}\]"')。，]+$/,'');
+      if(u2.split('/').length>3) add(u2.replace(/https?:\/\//,'').split('/')[0],u2);
+    }
+  }
+
+  return sites;
+}
+
+async function loadUrl(){
+  var u=document.getElementById('sitesUrl').value.trim();if(!u){smsg('err','请输入URL');return;}
+  smsgLoading('正在获取JSON…');
+  try{var r=await fetch('/api/fetch?url='+encodeURIComponent(u));var d=await r.json();if(d.code!==1){smsg('err',d.msg);return;}localStorage.setItem('ms-sites-url',u);doFlexibleImport(d.data);}
+  catch(e){smsg('err','获取失败: '+e.message);}
+}
+function loadJson(){var j=document.getElementById('sitesJson').value.trim();if(!j){smsg('err','请粘贴JSON');return;}doFlexibleImport(j);}
+
+async function doFlexibleImport(raw){
+  smsgLoading('数据导入中…');
+  // 让loading动画先渲染
+  await new Promise(function(r){setTimeout(r,80);});
+  var sites=flexibleParseSites(raw);
+  if(sites.length===0){smsg('err','未识别到有效站点（需要包含 api 地址）');return;}
+  // 更新进度
+  var el=document.getElementById('settingsMsg');
+  el.innerHTML='<span class="import-spinner"></span> 识别到 <b>'+sites.length+'</b> 个站点，正在加载…';
+  loadSites({json:JSON.stringify(sites)});
+}
+async function loadSites(body){
+  try{
+    var r=await fetch('/api/sites/load',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    var d=await r.json();
+    if(d.code===1){smsg('ok',d.msg);updateBadge(d.total);unlockSite();
+      var raw=typeof body.json==='string'?body.json:JSON.stringify(body.json);localStorage.setItem('ms-sites',raw);localStorage.setItem('ms-sites-time',new Date().toLocaleString('zh-CN'));updateSiteList(d.data);}
+    else smsg('err',d.msg);
+  }catch(e){smsg('err',e.message);}
+}
+function updateSiteList(data){
+  var panel=document.getElementById('siteListPanel');panel.style.display='block';
+  document.getElementById('siteCount').textContent=data.length;
+  var t=localStorage.getItem('ms-sites-time')||'';
+  document.getElementById('siteTime').textContent=t?' · '+t:'';
+  var list='';
+  for(var i=0;i<data.length;i++){list+='<span style="display:inline-block;width:22px;text-align:right;color:var(--accent);font-weight:600;">'+(i+1)+'.</span> '+data[i].name+'<br>';}
+  document.getElementById('siteList').innerHTML=list;
+}
+function clearSites(){
+  localStorage.removeItem('ms-sites');localStorage.removeItem('ms-sites-url');localStorage.removeItem('ms-sites-time');updateBadge(0);lockSite();
+  document.getElementById('resultsArea').innerHTML='';document.getElementById('emptyBox').style.display='block';
+  document.querySelectorAll('#catNav .cat-pill').forEach(function(p){p.classList.remove('active');});
+  activeCat=null;catPage={};movies=[];smsg('ok','已清除，请重新导入站点');
+  document.getElementById('siteListPanel').style.display='none';
+  document.getElementById('siteList').innerHTML='';
+  document.getElementById('sitesUrl').value='';
+}
+
+// ========== PLAYER ==========
+var cinemaMode=localStorage.getItem('ms-cinema')==='1';
+function applyCinema(){
+  var o=document.getElementById('playerOverlay'),b=document.getElementById('cinemaBtn');
+  o.classList.toggle('cinema',cinemaMode);
+  b.innerHTML=cinemaMode?'<i data-lucide="sun"></i>':'<i data-lucide="clapperboard"></i>';
+  b.title=cinemaMode?'退出影院模式':'影院模式';lucide.createIcons();
+}
+function toggleCinema(){cinemaMode=!cinemaMode;localStorage.setItem('ms-cinema',cinemaMode?'1':'0');applyCinema();}
+function doPlay(urls,title,idx){
+  idx=idx||0;if(idx>=urls.length){alert('所有线路均无法播放');return;}
+  var o=document.getElementById('playerOverlay'),v=document.getElementById('videoPlayer');
+  o.classList.add('open');applyCinema();
+  var srcInfo=urls[idx].site?' <span style="font-weight:400;opacity:.55;font-size:.9em;">['+urls[idx].site+']</span>':'';
+  document.getElementById('playerTitle').innerHTML=title+srcInfo+(urls.length>1?' · 线路'+(idx+1)+'/'+urls.length:'');
+  if(v._hls){v._hls.destroy();v._hls=null;}
+  if(v._playTimer){clearTimeout(v._playTimer);v._playTimer=null;}
+  if(v._seekTimer){clearInterval(v._seekTimer);v._seekTimer=null;}
+  v.onerror=null;v.oncanplay=null;v.ontimeupdate=null;
+  var url=urls[idx].url,skipped=false;
+  function next(){if(skipped)return;skipped=true;if(v._playTimer){clearTimeout(v._playTimer);v._playTimer=null;}setTimeout(function(){doPlay(urls,title,idx+1);},400);}
+  // 10秒超时：若视频未开始播放，自动跳下一源
+  v._playTimer=setTimeout(function(){if(v.paused||v.currentTime<0.5)next();},10000);
+  v.ontimeupdate=function(){if(v.currentTime>0.5&&v._playTimer){clearTimeout(v._playTimer);v._playTimer=null;}};
+  if(url.indexOf('.m3u8')>=0){
+    if(Hls.isSupported()){var h=new Hls({enableWorker:true,lowLatencyMode:false});h.loadSource(url);h.attachMedia(v);v._hls=h;
+      h.on(Hls.Events.ERROR,function(e,d){if(d.fatal||d.type===Hls.ErrorTypes.NETWORK_ERROR)next();});
+      h.on(Hls.Events.MANIFEST_PARSED,function(){if(v._playTimer){clearTimeout(v._playTimer);v._playTimer=null;}});
+    }else if(v.canPlayType('application/vnd.apple.mpegurl')){v.src=url;}
+    else{next();return;}
+  }else{v.src=url;}
+  v.onerror=next;v.play().catch(next);
+}
+function castVideo(){
+  var v=document.getElementById('videoPlayer');
+  if(v.webkitShowPlaybackTargetPicker){v.webkitShowPlaybackTargetPicker();return;}
+  if(v.paused){v.play();}else{v.pause();setTimeout(function(){v.play();},100);}
+}
+function showPoster(url){
+  if(!url) return;
+  // TMDB图片升级到高清
+  var hq=url.replace(/\/w300\//,'/w780/');
+  document.getElementById('posterLightboxImg').src=hq;
+  document.getElementById('posterLightbox').classList.add('open');
+}
+function closePoster(){
+  document.getElementById('posterLightbox').classList.remove('open');
+  document.getElementById('posterLightboxImg').src='';
+}
+function closePlayer(){
+  var v=document.getElementById('videoPlayer');
+  // 保存最终观影时间
+  if(currentWatch&&v.currentTime>1){
+    updateWatchTime(currentWatch.vodName,currentWatch.epLabel,currentWatch.epNum,Math.floor(v.currentTime));
+  }
+  if(v._playTimer){clearTimeout(v._playTimer);v._playTimer=null;}
+  if(watchTimer){clearInterval(watchTimer);watchTimer=null;}
+  currentWatch=null;
+  if(v._hls){v._hls.destroy();v._hls=null;}
+  v.pause();v.src='';v.onerror=null;document.getElementById('playerOverlay').classList.remove('open');
+}
+
+// ========== UTILS ==========
+function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function escAttr(s){if(!s)return'';return s.replace(/['"&<>\\]/g,'');}
+function escUrl(s){if(!s)return'';return s.replace(/"/g,'%22').replace(/'/g,'%27');}
+function norm(s){if(!s)return'';return s.replace(/\s+/g,'').toLowerCase().replace(/[【】《》\[\]\(\)（）\-\—\.\,\!\?]/g,'').trim();}
+
+// ========== BADGE & LOCK ==========
+var sitesLocked=true;
+function updateBadge(n){var b=document.getElementById('siteBadge');b.textContent=n+'站点';b.style.display=n>0?'inline':'none';}
+function unlockSite(){sitesLocked=false;document.getElementById('lockBanner').style.display='none';document.body.classList.remove('locked');}
+function lockSite(){sitesLocked=true;document.getElementById('lockBanner').style.display='block';document.body.classList.add('locked');}
+
+// ========== EP NORM + QUALITY ==========
+function epNorm(raw){
+  var m=raw.match(/第\s*(\d+)\s*集/);
+  if(m){var n=parseInt(m[1]);return{key:'ep_'+n,label:String(n),num:n};}
+  m=raw.match(/(\d+)/);
+  if(m){var n=parseInt(m[1]);return{key:'ep_'+n,label:String(n),num:n};}
+  return{key:raw,label:raw,num:99999};
+}
+function srcQuality(label){
+  var l=(label||'').toLowerCase();
+  if(/4[kK]|原盘|蓝光|bdrip|bd-rip|1080/.test(l)) return 30;
+  if(/超清|高清|hd|720/.test(l)) return 20;
+  if(/标清|sd|480/.test(l)) return 5;
+  return 15;
+}
+
+// ========== BUILD EPS ==========
+function buildEps(movie){
+  var eps=new Map();
+  for(var si=0;si<movie.sources.length;si++){
+    var src=movie.sources[si];
+    if(src.error) continue;
+    var pus=src.play_urls||[];
+    for(var pi=0;pi<pus.length;pi++){
+      var pu=pus[pi];if(!pu.url) continue;
+      var n=epNorm(pu.label||'播放'),q=srcQuality(pu.label);
+      if(eps.has(n.key)){
+        var ex=eps.get(n.key);
+        ex.altUrls.push({url:pu.url,site:src.site,key:src.key,time:src.responseTime||0,quality:q});
+        if(n.label.length<=ex.label.length) ex.label=n.label;
+      }else{
+        eps.set(n.key,{key:n.key,label:n.label,num:n.num,altUrls:[{url:pu.url,site:src.site,key:src.key,time:src.responseTime||0,quality:q}]});
+      }
+    }
+  }
+  eps.forEach(function(ep){ep.altUrls.sort(function(a,b){return b.quality-a.quality||a.time-b.time;});});
+  return eps;
+}
+function epSortKey(ep){return ep.num;}
+
+// ========== MERGE ==========
+function merge(srcs){
+  var map=new Map();
+  for(var si=0;si<srcs.length;si++){
+    var src=srcs[si];if(!src.results) continue;
+    for(var mi=0;mi<src.results.length;mi++){
+      var m=src.results[mi],k=norm(m.vod_name);if(!k) continue;
+      if(map.has(k)){
+        var ex=map.get(k);
+        ex.sources.push({site:src.site,key:src.key,responseTime:src.responseTime||0,play_urls:m.play_urls||[],error:src.error||null});
+        ex.vod_year=ex.vod_year||m.vod_year;ex.vod_pic=ex.vod_pic||m.vod_pic;ex.vod_area=ex.vod_area||m.vod_area;
+        ex.type_name=ex.type_name||m.type_name;ex.vod_actor=ex.vod_actor||m.vod_actor;ex.vod_director=ex.vod_director||m.vod_director;
+        ex.vod_content=ex.vod_content||m.vod_content;
+      }else{
+        map.set(k,{vod_name:m.vod_name,vod_pic:m.vod_pic||'',vod_year:m.vod_year||'',vod_area:m.vod_area||'',type_name:m.type_name||'',vod_actor:m.vod_actor||'',vod_director:m.vod_director||'',vod_content:m.vod_content||'',sources:[{site:src.site,key:src.key,responseTime:src.responseTime||0,play_urls:m.play_urls||[],error:src.error||null}]});
+      }
+    }
+  }
+  return Array.from(map.values()).sort(function(a,b){return b.sources.length-a.sources.length;});
+}
+
+// ========== SEARCH HISTORY ==========
+var MAX_HISTORY=15;
+function getHistory(){try{return JSON.parse(localStorage.getItem('ms-history')||'[]');}catch(e){return[];}}
+function saveHistory(arr){localStorage.setItem('ms-history',JSON.stringify(arr.slice(0,MAX_HISTORY)));}
+function addHistory(kw){
+  var h=getHistory();h=h.filter(function(x){return x!==kw;});h.unshift(kw);saveHistory(h);
+}
+function delOneHistory(kw,ev){ev.stopPropagation();var h=getHistory().filter(function(x){return x!==kw;});saveHistory(h);renderHistory();}
+function clearHistory(){saveHistory([]);renderHistory();}
+
+// ========== WATCH HISTORY ==========
+var MAX_WATCH=20;
+function getWatchHistory(){try{return JSON.parse(localStorage.getItem('ms-watch')||'[]');}catch(e){return[];}}
+function saveWatchHistory(arr){localStorage.setItem('ms-watch',JSON.stringify(arr.slice(0,MAX_WATCH)));}
+function addWatchRecord(vodName,epLabel,epNum,timeSec){
+  var h=getWatchHistory();timeSec=timeSec||0;
+  h=h.filter(function(x){return !(x.vod_name===vodName&&x.epNum===epNum);});
+  var disp=timeSec>0?fmtTime(timeSec):'00:00';
+  h.unshift({vod_name:vodName,epLabel:epLabel,epNum:epNum,time:timeSec,timeDisplay:disp,timestamp:Date.now()});
+  saveWatchHistory(h);renderHistory();
+}
+function updateWatchTime(vodName,epLabel,epNum,timeSec){
+  var h=getWatchHistory();
+  for(var i=0;i<h.length;i++){if(h[i].vod_name===vodName&&h[i].epNum===epNum){h[i].time=timeSec;h[i].timeDisplay=fmtTime(timeSec);h[i].timestamp=Date.now();saveWatchHistory(h);return;}}
+}
+function fmtTime(s){var m=Math.floor(s/60),sec=Math.floor(s%60);return (m<10?'0':'')+m+':'+(sec<10?'0':'')+sec;}
+function delOneWatchHistory(idx,ev){ev.stopPropagation();var h=getWatchHistory();h.splice(idx,1);saveWatchHistory(h);renderHistory();}
+function clearWatchHistory(){saveWatchHistory([]);renderHistory();}
+
+function renderHistory(){
+  var searchH=getHistory(),watchH=getWatchHistory(),list=document.getElementById('historyList');
+  if(searchH.length===0&&watchH.length===0){document.getElementById('historyDrop').style.display='none';return;}
+  var html='';
+  // 观影记录区
+  if(watchH.length>0){
+    for(var i=0;i<watchH.length;i++){
+      var w=watchH[i];
+      html+='<span class="history-pill" style="border-color:var(--accent);background:var(--ep-bg)" onclick="pickWatchHistory('+i+')">'+esc(w.vod_name)+' '+esc(w.epLabel)+'&nbsp;&nbsp;<b style="color:var(--accent)">'+esc(w.timeDisplay)+'</b><button class="hx" onclick="delOneWatchHistory('+i+',event)">×</button></span>';
+    }
+  }
+  // 搜索记录区（另起一行，明确分隔）
+  if(searchH.length>0){
+    if(watchH.length>0) html+='<div class="history-section-divider"></div>';
+    for(var i=0;i<searchH.length;i++){
+      var kw=searchH[i];
+      html+='<span class="history-pill" onclick="pickHistory(\''+kw.replace(/'/g,"\\'")+'\')">'+esc(kw)+'<button class="hx" onclick="delOneHistory(\''+kw.replace(/'/g,"\\'")+'\',event)">×</button></span>';
+    }
+  }
+  list.innerHTML=html;lucide.createIcons();
+}
+function pickHistory(kw){var s=document.getElementById('searchInput');s.value=kw;document.getElementById('historyDrop').style.display='none';s.blur();doSearch();}
+function pickWatchHistory(idx){
+  var h=getWatchHistory();if(idx>=h.length) return;
+  var w=h[idx];
+  document.getElementById('searchInput').value=w.vod_name;
+  document.getElementById('historyDrop').style.display='none';
+  pendingWatch={vodName:w.vod_name,epNum:w.epNum,epLabel:w.epLabel,time:w.time};
+  doSearch();
+}
+var searchInput=document.getElementById('searchInput'),historyDrop=document.getElementById('historyDrop');
+searchInput.addEventListener('focus',function(){
+  var h=getHistory(),w=getWatchHistory();if(h.length===0&&w.length===0) return;
+  renderHistory();historyDrop.style.display='block';
+});
+searchInput.addEventListener('blur',function(){
+  setTimeout(function(){if(!historyDrop.matches(':hover')){historyDrop.style.display='none';searchInput.blur();}},150);
+});
+historyDrop.addEventListener('mouseleave',function(){historyDrop.style.display='none';searchInput.blur();});
+document.addEventListener('click',function(e){if(!e.target.closest('#searchBox')){historyDrop.style.display='none';}});
+document.addEventListener('touchend',function(e){if(!e.target.closest('#searchBox')){historyDrop.style.display='none';}});
+
+// ========== SEARCH ==========
+var movies=[],statusTimer=null,lastKw='',lastStats=null;
+async function doSearch(keepCat){
+  var kw=document.getElementById('searchInput').value.trim();if(!kw) return;
+  addHistory(kw);
+  document.getElementById('resultsArea').innerHTML='';document.getElementById('emptyBox').style.display='none';
+  document.getElementById('loadingBox').style.display='block';
+  document.getElementById('statusBar').style.display='flex';
+  document.getElementById('statusBar').innerHTML='<span class="status-dot" id="statusDot"></span> 搜索中 0/? 站点...';
+  document.getElementById('searchBtn').disabled=true;
+  if(!keepCat){document.querySelectorAll('#catNav .cat-pill').forEach(function(p){p.classList.remove('active');});activeCat=null;catPage={};}
+  var rs=document.getElementById('regionSelect');rs.value='CN';rs.classList.add('active');
+  clearTimeout(statusTimer);
+  abortAll();searchAbort=new AbortController();
+  try{
+    var searchSites=[];try{var saved=localStorage.getItem('ms-sites');if(saved){var parsed=JSON.parse(saved);searchSites=Array.isArray(parsed)?parsed:(parsed.sites||[]);}}catch(e){}
+    var resp=await fetch('/api/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wd:kw,sites:searchSites}),signal:searchAbort.signal});
+    var reader=resp.body.getReader(),decoder=new TextDecoder(),buffer='',allSrcData=[];
+    while(true){
+      var chunk=await reader.read();if(chunk.done) break;
+      buffer+=decoder.decode(chunk.value,{stream:true});var lines=buffer.split('\n');buffer=lines.pop();
+      for(var i=0;i<lines.length;i++){
+        var line=lines[i];if(!line.trim()) continue;
+        var msg=JSON.parse(line);
+        if(msg.type==='result'){
+          allSrcData.push(msg.data);movies=merge(allSrcData);
+          document.getElementById('statusBar').innerHTML='<span class="status-dot"></span> 搜索中 '+msg.completed+'/'+msg.total+' 站点 · '+movies.length+' 部';
+          var shouldRender=msg.completed===1||msg.completed%5===0||msg.completed===msg.total;
+          if(shouldRender&&movies.length>0){
+            document.getElementById('loadingBox').style.display='none';
+            document.getElementById('emptyBox').style.display='none';
+            render(kw,{completed:msg.completed,total:msg.total});
+          }
+        }else if(msg.type==='done'){
+          document.getElementById('loadingBox').style.display='none';
+          if(msg.error){document.getElementById('statusBar').innerHTML='<span class="status-dot err"></span> '+msg.error;document.getElementById('searchBtn').disabled=false;return;}
+          var sd=document.getElementById('statusDot');if(sd) sd.className=msg.success>0?'status-dot ok':'status-dot err';
+          document.getElementById('statusBar').innerHTML=(msg.success>0?'<span class="status-dot ok"></span> ':'<span class="status-dot err"></span> ')+msg.success+'站点成功, '+msg.fail+'失败, 共'+msg.totalMovies+'条 · '+(msg.totalTime/1000).toFixed(1)+'s';
+          document.getElementById('searchBtn').disabled=false;
+          statusTimer=setTimeout(function(){document.getElementById('statusBar').style.display='none';},3000);
+          if(movies.length===0){document.getElementById('emptyBox').style.display='block';document.getElementById('emptyBox').innerHTML='<p style="font-size:40px;color:var(--text3);"><i data-lucide=\"search-x\"></i></p><p>未找到\"'+esc(kw)+'\"</p><p style=\"font-size:12px;margin-top:4px;\">请确认已加载站点（右上角 <i data-lucide=\"settings\"></i>）</p>';lucide.createIcons();}
+          else{lastKw=kw;lastStats={completed:msg.total,total:msg.total,done:true,success:msg.success,fail:msg.fail,totalMovies:msg.totalMovies,totalTime:msg.totalTime};render(lastKw,lastStats);enrichTmdb(kw);}
+        }
+      }
+    }
+  }catch(e){if(e.name==='AbortError')return;document.getElementById('loadingBox').style.display='none';document.getElementById('statusBar').innerHTML='<span class="status-dot err"></span> 错误: '+e.message;document.getElementById('searchBtn').disabled=false;}
+}
+
+function render(kw,stats){
+  var header='';
+  if(stats&&stats.done){header='<div class="results-header">"<b>'+esc(kw||lastKw)+'</b>" — '+(stats.totalMovies||movies.length)+'条 · '+(stats.success||'?')+'/'+(stats.total||'?')+'站点 · <b>'+(stats.totalTime?(stats.totalTime/1000).toFixed(1):'?')+'s</b></div>';}
+  else if(stats){header='<div class="results-header">"<b>'+esc(kw||lastKw)+'</b>" — '+(stats.completed||'?')+'/'+(stats.total||'?')+' 站点 · '+movies.length+' 部</div>';}
+  var html=header+'<div id="resultsCards">';
+  for(var mi=0;mi<movies.length;mi++){
+    var movie=movies[mi];
+    var eps=buildEps(movie),epList=[];eps.forEach(function(ep){epList.push(ep);});
+    epList.sort(function(a,b){return epSortKey(a)-epSortKey(b);});
+    var workingSrcs=[];
+    for(var si=0;si<movie.sources.length;si++){var s=movie.sources[si];if(!s.error&&s.play_urls&&s.play_urls.length>0) workingSrcs.push(s);}
+    var fastest=null;
+    if(workingSrcs.length>0){fastest=workingSrcs[0];for(var wi=1;wi<workingSrcs.length;wi++){if((workingSrcs[wi].responseTime||9999)<(fastest.responseTime||9999)) fastest=workingSrcs[wi];}}
+
+    html+='<div class="movie-card"><div class="movie-top"><div class="poster-wrap">';
+    if(movie.vod_pic){
+      html+='<img class="movie-poster" src="'+escUrl(movie.vod_pic)+'" loading="lazy" onclick="event.stopPropagation();showPoster(\''+escUrl(movie.vod_pic)+'\')" style="cursor:pointer" onerror="var d=document.createElement(\'div\');d.className=\'movie-poster poster-fb\';d.innerHTML=\'<i data-lucide=&quot;image-off&quot;></i>\';this.replaceWith(d);lucide.createIcons();">';
+    }else{html+='<div class="movie-poster poster-fb"><i data-lucide="image-off"></i></div>';}
+    html+=movie.tmdb?'<span class="poster-rating'+(parseFloat(movie.tmdb.rating)>=10?' wide':'')+'">'+movie.tmdb.rating+'</span>':'';
+    html+='</div><div class="movie-info"><div class="movie-title">'+esc(movie.vod_name)+(movie.tmdbLoading?'<span class="tmdb-badge" style="opacity:.5;"><i data-lucide="loader"></i> TMDB</span>':'')+'</div>';
+    html+='<div class="movie-meta">'+(movie.vod_year?'<span><i data-lucide="calendar"></i> '+esc(movie.vod_year)+'</span>':'')+(movie.vod_area?'<span><i data-lucide="globe"></i> '+esc(movie.vod_area)+'</span>':'')+(movie.type_name?'<span><i data-lucide="folder"></i> '+esc(movie.type_name)+'</span>':'')+'</div>';
+    if(movie.vod_director) html+='<div class="movie-meta" style="margin-top:2px;"><i data-lucide="clapperboard"></i> 导演：'+esc(movie.vod_director)+'</div>';
+    if(movie.vod_actor) html+='<div class="movie-meta" style="margin-top:2px;"><i data-lucide="users"></i> 主演：'+esc(movie.vod_actor)+'</div>';
+    if(movie.vod_content) html+='<div class="movie-meta" style="margin-top:4px;line-height:1.5;"><i data-lucide="book-open"></i> '+esc(movie.vod_content).substring(0,150)+(movie.vod_content.length>150?'...':'')+'</div>';
+    html+='<div class="movie-summary"><span class="ep-count-badge"><i data-lucide="tv"></i> '+epList.length+'集</span><span class="src-count"><i data-lucide="antenna"></i> '+workingSrcs.length+'源</span>'+(fastest?'<span class="fast-badge"><i data-lucide="zap"></i>'+fastest.responseTime+'ms</span>':'')+'<a href="https://search.douban.com/movie/subject_search?search_text='+encodeURIComponent(movie.vod_name)+'" target="_blank" onclick="event.stopPropagation()" class="douban-link" title="豆瓣搜索 '+esc(movie.vod_name)+'"><i data-lucide="external-link"></i> 豆瓣</a></div>';
+    html+='</div></div>';
+
+    if(epList.length>0){
+      html+='<div class="ep-section"><div class="ep-section-title"><span>点击集数播放：</span><button class="ep-reverse-btn" onclick="reverseEps(this)" title="倒序"><i data-lucide="arrow-up-down"></i> 倒序</button></div><div class="ep-grid">';
+      for(var ei=0;ei<epList.length;ei++){
+        var ep=epList[ei],best=ep.altUrls[0];
+        var urlsJson=JSON.stringify(ep.altUrls).replace(/"/g,'&quot;').replace(/'/g,'\\u0027');
+        html+='<button class="ep-btn" onclick="playEp(\''+urlsJson+'\',\''+escAttr(movie.vod_name+' - '+ep.label)+'\','+mi+',this)" title="'+esc(best.site)+' · '+best.time+'ms">'+esc(ep.label)+'</button>';
+      }
+      html+='</div></div>';
+    }
+    if(workingSrcs.length>0){
+      html+='<div class="src-select-row"><i data-lucide="wrench"></i> 首选源：<select onchange="setPrefSrc('+mi+',this.value)" id="srcSel'+mi+'"><option value="">自动（高清优先）</option>';
+      var sortedSrcs=workingSrcs.slice().sort(function(a,b){return(a.responseTime||9999)-(b.responseTime||9999);});
+      for(var wsi=0;wsi<sortedSrcs.length;wsi++){var ws=sortedSrcs[wsi];html+='<option value="'+escAttr(ws.key)+'">'+esc(ws.site)+' ('+ws.responseTime+'ms)</option>';}
+      html+='</select> <button onclick="setPrefSrc('+mi+',null);var s=document.getElementById(\'srcSel'+mi+'\');if(s)s.value=\'\';" style="font-size:11px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;">重置</button></div>';
+    }
+    html+='</div>';
+  }
+  html+='</div>';
+  document.getElementById('resultsArea').innerHTML=html;
+  lucide.createIcons();
+  // 处理观影记录跳转：自动定位到对应剧集和时间
+  if(pendingWatch){
+    var pw=pendingWatch;
+    setTimeout(function(){
+      var cards=document.querySelectorAll('.movie-card');
+      for(var ci=0;ci<cards.length;ci++){
+        var card=cards[ci],titleEl=card.querySelector('.movie-title');
+        if(!titleEl) continue;
+        if(titleEl.textContent.trim()===pw.vodName||titleEl.textContent.trim().indexOf(pw.vodName)===0){
+          var epBtns=card.querySelectorAll('.ep-btn'),matchedBtn=null;
+          for(var ei=0;ei<epBtns.length;ei++){
+            var btn=epBtns[ei],btnText=btn.textContent.trim();
+            if(btnText===pw.epLabel||btnText===String(pw.epNum)||btnText.indexOf(String(pw.epNum))!==-1){
+              matchedBtn=btn;break;
+            }
+          }
+          if(matchedBtn){
+            pendingWatch=null; // 找到了才消费
+            matchedBtn.scrollIntoView({behavior:'smooth',block:'center'});
+            matchedBtn.click();
+            if(pw.time>0){
+              var seekTimer=setInterval(function(){
+                var v=document.getElementById('videoPlayer');
+                if(v&&v.currentTime<1&&!v.paused){
+                  v.currentTime=pw.time;
+                  clearInterval(seekTimer);
+                  v._seekTimer=null;
+                }
+              },500);
+              var vNow=document.getElementById('videoPlayer');
+              if(vNow) vNow._seekTimer=seekTimer;
+              setTimeout(function(){clearInterval(seekTimer);},10000);
+            }
+          }
+          break;
+        }
+      }
+    },300);
+  }
+}
+
+var prefSrcKey={};
+function setPrefSrc(mi,key){prefSrcKey[mi]=key||null;}
+
+function playEp(urlsJson,title,mi,btn){
+  document.querySelectorAll('.ep-btn.now').forEach(function(b){b.classList.remove('now');});
+  if(btn) btn.classList.add('now');
+  var urls=JSON.parse(urlsJson.replace(/&quot;/g,'"'));
+  if(prefSrcKey[mi]){
+    var pk=prefSrcKey[mi],arr=[];urls.forEach(function(u){if(u.key===pk) arr.push(u);});urls.forEach(function(u){if(u.key!==pk) arr.push(u);});urls=arr;
+  }
+  // 保存观影记录 — 用 lastIndexOf 防止电影名含 ' - ' 被切断
+  var idx=title.lastIndexOf(' - '),vodName=idx>=0?title.substring(0,idx):title,epLabel=idx>=0?title.substring(idx+3):'';
+  var epNum=0;var m=epLabel.match(/(\d+)/);if(m) epNum=parseInt(m[1]);
+  currentWatch={vodName:vodName,epLabel:epLabel,epNum:epNum};
+  addWatchRecord(vodName,epLabel,epNum,0);
+  // 启动播放时间追踪
+  if(watchTimer) clearInterval(watchTimer);
+  watchTimer=setInterval(function(){
+    var v=document.getElementById('videoPlayer');
+    if(v&&!v.paused&&v.currentTime>0&&currentWatch){
+      updateWatchTime(currentWatch.vodName,currentWatch.epLabel,currentWatch.epNum,Math.floor(v.currentTime));
+    }
+  },5000);
+  doPlay(urls,title);
+}
+
+function reverseEps(btn){
+  var grid=btn.closest('.ep-section').querySelector('.ep-grid');
+  var items=Array.from(grid.children);items.reverse().forEach(function(el){grid.appendChild(el);});
+  var rev=btn.classList.toggle('reversed');
+  btn.innerHTML=rev?'<i data-lucide="arrow-up-down"></i> 正序':'<i data-lucide="arrow-up-down"></i> 倒序';
+  lucide.createIcons();
+}
+
+// ========== CATEGORIES ==========
+var TODAY=new Date().toISOString().split('T')[0];
+var CAT_PARAMS={
+  trending_movie:{type:'movie',sort:'primary_release_date.desc',extra:'primary_release_date.lte='+TODAY},
+  trending_tv:{type:'tv',sort:'first_air_date.desc',extra:'with_status=0&first_air_date.lte='+TODAY},
+  top_rated:{type:'movie',sort:'primary_release_date.desc',extra:'vote_count.gte=50&primary_release_date.lte='+TODAY},
+  now_playing:{type:'movie',sort:'primary_release_date.desc',extra:'primary_release_date.lte='+TODAY},
+  action:{type:'movie',sort:'primary_release_date.desc',extra:'with_genres=28&primary_release_date.lte='+TODAY},
+  comedy:{type:'movie',sort:'primary_release_date.desc',extra:'with_genres=35&primary_release_date.lte='+TODAY},
+  scifi:{type:'movie',sort:'primary_release_date.desc',extra:'with_genres=878&primary_release_date.lte='+TODAY},
+  horror:{type:'movie',sort:'primary_release_date.desc',extra:'with_genres=27&primary_release_date.lte='+TODAY},
+  doc:{type:'movie',sort:'primary_release_date.desc',extra:'with_genres=99&primary_release_date.lte='+TODAY},
+  dc:{type:'movie',sort:'primary_release_date.desc',extra:'with_keywords=229266|312528|329136&primary_release_date.lte='+TODAY},
+  marvel:{type:'movie',sort:'primary_release_date.desc',extra:'with_keywords=180547&primary_release_date.lte='+TODAY},
+  starwars:{type:'movie',sort:'primary_release_date.desc',collection:10},
+  harrypotter:{type:'movie',sort:'primary_release_date.desc',collection:1241},
+  jurassic:{type:'movie',sort:'primary_release_date.desc',search:'jurassic world'},
+  bond:{type:'movie',sort:'primary_release_date.desc',collection:645},
+  lotr:{type:'movie',sort:'primary_release_date.desc',search:'lord of the rings'}
+};
+var catPage={},activeCat=null,catTimer=null,catLoading=false,catCache={};
+var SERIES_CATS={marvel:1,dc:1,starwars:1,harrypotter:1,jurassic:1,bond:1,lotr:1};
+var TMDB='https://your-tmdb-worker.workers.dev';
+function tmdbFetch(path,timeout){var sep=path.indexOf('?')>=0?'&':'?';var url=TMDB+path+sep+'pwd=digital';if(!timeout)return fetch(url);var ctrl=new AbortController();var timer=setTimeout(function(){ctrl.abort();},timeout);return fetch(url,{signal:ctrl.signal}).finally(function(){clearTimeout(timer);});}
+
+async function loadCategory(cat,pill,forceReload){
+  abortAll();catAbort=new AbortController();var sig=catAbort.signal;
+  var region=document.getElementById('regionSelect').value;
+  var isMore=pill.classList.contains('active')&&!forceReload;
+  if(!isMore){
+    document.querySelectorAll('#catNav .cat-pill').forEach(function(p){p.classList.remove('active');});
+    pill.classList.add('active');activeCat=cat;catPage={};document.getElementById('resultsArea').innerHTML='';
+  }
+  catLoading=true;clearTimeout(catTimer);
+  document.getElementById('emptyBox').style.display='none';
+  var page=(catPage[cat]||0)+1;catPage[cat]=page;
+  // 第一页有缓存直接显示
+  if(page===1&&catCache[cat+'_'+region+'_v2']){
+    var cached=catCache[cat+'_'+region+'_v2'];
+    document.getElementById('loadingBox').style.display='none';
+    document.getElementById('statusBar').style.display='flex';
+    document.getElementById('statusBar').innerHTML='<span class="status-dot ok"></span> '+pill.textContent.trim()+' · 第1页（缓存）';
+    renderCatGrid(cached,cat,false);
+    catLoading=false;catTimer=setTimeout(function(){document.getElementById('statusBar').style.display='none';},2000);
+    return;
+  }
+  document.getElementById('loadingBox').style.display='block';
+  document.getElementById('statusBar').style.display='flex';
+  document.getElementById('statusBar').innerHTML='<span class="status-dot"></span> 加载中...';
+  var t0=Date.now();
+  try{
+    var cfg=CAT_PARAMS[cat];
+    // 自定义分类：搜TMDB关键词ID，用关键词筛选系列作品；搜不到则搜影片名
+    // Collection系列（007等，精确）
+    if(cfg.collection){
+      var res=await tmdbFetch('/collection/'+cfg.collection+'?language=zh-CN',10000);
+      var colData=await res.json();
+      var items=(colData.parts||[]).filter(function(r){return(r.release_date||'')<=TODAY;});
+      items.sort(function(a,b){return (b.release_date||'')>(a.release_date||'')?1:-1;});
+      document.getElementById('loadingBox').style.display='none';
+      var elapsed=Date.now()-t0;
+      document.getElementById('statusBar').innerHTML='<span class="status-dot ok"></span> '+pill.textContent.trim()+' · '+items.length+'部 · '+elapsed+'ms';
+      catTimer=setTimeout(function(){document.getElementById('statusBar').style.display='none';},3000);
+      if(page===1&&items.length>0) catCache[cat+'_'+region+'_v2']={items:items,page:1};
+      catLoading=false;
+      if(items.length===0){
+        document.getElementById('loadingBox').style.display='none';
+        document.getElementById('emptyBox').style.display='block';
+        document.getElementById('emptyBox').innerHTML='<p style="font-size:40px;color:var(--text3);"><i data-lucide=\"search-x\"></i></p><p>该分类暂无结果</p>';
+        lucide.createIcons();
+        return;
+      }
+      // 分页（客户端切分）
+      var perPage=20,start=(page-1)*perPage,end=start+perPage;
+      var pageItems=items.slice(start,end);
+      // Convert to same format as discover results
+      var data={results:pageItems,total_results:items.length};
+      var regionText=region?' · '+document.getElementById('regionSelect').selectedOptions[0]?.textContent:'';
+      if(pageItems.length===0) return;
+      renderCatGrid(pageItems,cat,isMore);
+      return;
+    }
+    // 影片名搜索系列（星球大战/哈利波特等）
+    if(cfg.search){
+      var sExtra='sort_by='+cfg.sort;
+      if(region&&!SERIES_CATS[cat]) sExtra+='&with_origin_country='+region;
+      if(cfg.type==='movie') sExtra+='&primary_release_date.lte='+TODAY;
+      var res=await tmdbFetch('/search/movie?query='+encodeURIComponent(cfg.search)+'&language=zh-CN&'+sExtra+'&page='+page,10000);
+      var data=await res.json();
+      // 客户端排序+过滤未来
+      if(data.results){data.results=data.results.filter(function(r){return (r.release_date||'')<=TODAY;});data.results.sort(function(a,b){return (b.release_date||'')>(a.release_date||'')?1:-1;});}
+    }else if(cfg.keyword){
+      var data;
+      var kwRes=await tmdbFetch('/search/keyword?query='+encodeURIComponent(cfg.keyword),10000);
+      var kwData=await kwRes.json();
+      if(kwData.results&&kwData.results.length>0){
+        var kwExtra='sort_by='+cfg.sort+'&with_keywords='+kwData.results[0].id;
+        if(cfg.extra) kwExtra+='&'+cfg.extra;
+        if(region&&!SERIES_CATS[cat]) kwExtra+='&with_origin_country='+region;
+        if(cfg.type==='movie') kwExtra+='&primary_release_date.lte='+TODAY;
+        else if(cfg.type==='tv') kwExtra+='&first_air_date.lte='+TODAY;
+        var res=await tmdbFetch('/discover/movie?language=zh-CN&'+kwExtra+'&page='+page,10000);
+        data=await res.json();
+      }else{
+        var sExtra='sort_by='+cfg.sort;
+        if(region&&!SERIES_CATS[cat]) sExtra+='&with_origin_country='+region;
+        if(cfg.type==='movie') sExtra+='&primary_release_date.lte='+TODAY;
+        var res=await tmdbFetch('/search/movie?query='+encodeURIComponent(cfg.keyword)+'&language=zh-CN&'+sExtra+'&page='+page,10000);
+        data=await res.json();
+      }
+    }else{
+      var extra='sort_by='+cfg.sort;if(cfg.extra) extra+='&'+cfg.extra;
+      if(region&&!SERIES_CATS[cat]) extra+='&with_origin_country='+region;
+      var url='/discover/'+cfg.type+'?language=zh-CN&'+extra+'&page='+page;
+      var res=await tmdbFetch(url,10000);var data=await res.json();
+    }
+    var items=data.results||[];
+    document.getElementById('loadingBox').style.display='none';
+    var elapsed=Date.now()-t0;
+    var regionText=region?' · '+document.getElementById('regionSelect').selectedOptions[0]?.textContent:'';
+    document.getElementById('statusBar').innerHTML='<span class="status-dot ok"></span> '+pill.textContent.trim()+regionText+' · 第'+page+'页 · '+elapsed+'ms';
+    catTimer=setTimeout(function(){document.getElementById('statusBar').style.display='none';},3000);
+    // 缓存第一页结果
+    if(page===1&&items.length>0) catCache[cat+'_'+region+'_v2']={items:items,page:page};
+    catLoading=false;
+    if(items.length===0){
+      document.getElementById('loadingBox').style.display='none';
+      document.getElementById('emptyBox').style.display='block';
+      document.getElementById('emptyBox').innerHTML='<p style="font-size:40px;color:var(--text3);"><i data-lucide=\"search-x\"></i></p><p>该分类暂无结果</p>';
+      lucide.createIcons();
+      catTimer=setTimeout(function(){document.getElementById('statusBar').style.display='none';},3000);
+      return;
+    }
+    renderCatGrid(items,cat,isMore);
+  }catch(e){
+    if(e.name==='AbortError'){catLoading=false;return;}
+    document.getElementById('loadingBox').style.display='none';
+    document.getElementById('statusBar').innerHTML='<span class="status-dot err"></span> 加载失败: '+e.message;
+    catLoading=false;
+  }
+}
+
+function renderCatGrid(items,cat,append){
+  var h='';
+  for(var i=0;i<items.length;i++){
+    var item=items[i],title=item.title||item.name||'',rating=item.vote_average?Number(item.vote_average).toFixed(1):'?';
+    var poster=item.poster_path?'<img class="cat-card-img" src="'+TMDB+'/image/t/p/w300'+item.poster_path+'?pwd=digital" loading="lazy" onerror="this.style.background=\'var(--border)\'">':'<div class="cat-card-img cat-card-noposter"><i data-lucide="clapperboard"></i></div>';
+    var date=(item.release_date||item.first_air_date||'').substring(0,7);
+    h+='<div class="cat-card" onclick="searchCatItem(\''+escAttr(title)+'\')" title="'+esc(title)+'">'+poster+'<div class="cat-card-info"><div class="cat-card-title">'+esc(title)+'</div><div class="cat-card-meta">'+(date?'<span>'+date+'</span>':'')+'<span class="cat-card-rating">⭐ '+rating+'</span></div></div></div>';
+  }
+  var moreH='<div class="cat-more" id="catMore" onclick="event.stopPropagation();loadCategory(\''+cat+'\',document.querySelector(\'[data-cat=\\\''+cat+'\\\']\'))"><span>查看更多 →</span></div>';
+  if(append){
+    var oldMore=document.getElementById('catMore');if(oldMore) oldMore.remove();
+    var grid=document.querySelector('.cat-grid');if(grid){grid.insertAdjacentHTML('beforeend',h);grid.insertAdjacentHTML('beforeend',moreH);}
+  }else{
+    document.getElementById('resultsArea').innerHTML='<div class="cat-grid">'+h+moreH+'</div>';
+  }
+  lucide.createIcons();
+}
+
+function searchCatItem(title){document.getElementById('searchInput').value=title;document.querySelectorAll('#catNav .cat-pill').forEach(function(p){p.classList.remove('active');});var rrs=document.getElementById('regionSelect');rrs.value='CN';rrs.classList.add('active');activeCat=null;doSearch();}
+var searchAbort=null,catAbort=null,currentWatch=null,watchTimer=null,pendingWatch=null;
+function abortAll(){
+  if(searchAbort){searchAbort.abort();searchAbort=null;}
+  if(catAbort){catAbort.abort();catAbort=null;}
+  clearTimeout(statusTimer);clearTimeout(catTimer);
+  catLoading=false;document.getElementById('searchBtn').disabled=false;
+}
+function resetHome(){
+  abortAll();
+  document.getElementById('searchInput').value='';document.getElementById('resultsArea').innerHTML='';
+  document.getElementById('emptyBox').style.display='block';document.getElementById('loadingBox').style.display='none';
+  document.getElementById('emptyBox').innerHTML='<p style="font-size:40px;margin-bottom:8px;color:var(--text3);"><i data-lucide=\"video\"></i></p><p style=\"font-size:15px;font-weight:500;\">开始搜索电影</p><p style=\"font-size:12px;margin-top:4px;\">先 <i data-lucide=\"settings\"></i> 加载站点配置</p>';
+  document.getElementById('statusBar').style.display='none';
+  document.querySelectorAll('#catNav .cat-pill').forEach(function(p){p.classList.remove('active');});
+  var rs=document.getElementById('regionSelect');rs.value='CN';rs.classList.add('active');
+  activeCat=null;catPage={};movies=[];lucide.createIcons();
+}
+
+// ========== TMDB ==========
+function cleanName(name){return name.replace(/[（(][^)）]*[)）]/g,'').replace(/动态漫画|动态漫|第[一二三四五六七八九十\d]+季/g,'').replace(/\d{4}$/,'').trim()||name;}
+async function enrichTmdb(kw){
+  var top=movies.slice(0,20).filter(function(m){return !m.tmdb&&!m.tmdbLoading;});
+  if(top.length===0) return;
+  top.forEach(function(m){m.tmdbLoading=true;});
+  var results=await Promise.allSettled(top.map(function(m,i){
+    return new Promise(function(resolve){
+      setTimeout(async function(){
+        try{
+          var res=await tmdbFetch('/search/multi?query='+encodeURIComponent(m.vod_name)+'&language=zh-CN');
+          var data=await res.json();
+          if(!data.results||data.results.length===0){var cleaned=cleanName(m.vod_name);if(cleaned!==m.vod_name){res=await tmdbFetch('/search/multi?query='+encodeURIComponent(cleaned)+'&language=zh-CN');data=await res.json();}}
+          if(data.results&&data.results.length>0){var tm=data.results[0],date=tm.release_date||tm.first_air_date||'';m.tmdb={rating:Number(tm.vote_average).toFixed(1),overview:tm.overview,year:date.substring(0,4),type:tm.media_type==='tv'?'剧集':'电影'};}
+        }catch(e){}finally{m.tmdbLoading=false;resolve();}
+      },i*80);
+    });
+  }));
+  var gotAny=top.some(function(m){return m.tmdb;});
+  if(gotAny&&lastStats) render(lastKw,lastStats);
+}
+
+// ========== CUSTOM CATS ==========
+function addCustomCat(){
+  var name=prompt('输入自定义分类名称（建议英文，如：marvel、anime、pixar）：');
+  if(!name||!name.trim()) return;name=name.trim();
+  var catKey='custom_'+Date.now();
+  CAT_PARAMS[catKey]={type:'movie',sort:'primary_release_date.desc',extra:'',keyword:name};
+  createCustomPill(catKey,name);saveCustomCats();loadCategory(catKey,document.querySelector('[data-cat="'+catKey+'"]'));
+}
+function createCustomPill(catKey,name){
+  var pill=document.createElement('button');pill.className='cat-pill custom';pill.dataset.cat=catKey;pill.draggable=true;
+  pill.innerHTML=name+'<span class="cat-pill-del" onclick="event.stopPropagation();deleteCustomCat(this.parentElement)">×</span>';
+  document.getElementById('addCatBtn').before(pill);
+}
+function deleteCustomCat(pill){
+  var cat=pill.dataset.cat;delete CAT_PARAMS[cat];
+  if(activeCat===cat){activeCat=null;document.getElementById('resultsArea').innerHTML='';}
+  pill.remove();saveCustomCats();
+}
+function saveCustomCats(){
+  var customs=[];document.querySelectorAll('.cat-pill.custom').forEach(function(p){customs.push({cat:p.dataset.cat,name:p.childNodes[0].textContent.trim()});});
+  localStorage.setItem('ms-custom-cats',JSON.stringify(customs));
+}
+function restoreCustomCats(){
+  try{var saved=JSON.parse(localStorage.getItem('ms-custom-cats')||'[]');var presets={marvel:1,dc:1,starwars:1,harrypotter:1,jurassic:1,bond:1,lotr:1,trending_movie:1,trending_tv:1,top_rated:1,now_playing:1,action:1,comedy:1,scifi:1,horror:1,doc:1};saved=saved.filter(function(o){return !presets[o.cat];});saved.forEach(function(o){CAT_PARAMS[o.cat]={type:'movie',sort:'primary_release_date.desc',extra:'',keyword:o.name};createCustomPill(o.cat,o.name);});localStorage.setItem('ms-custom-cats',JSON.stringify(saved));}catch(e){}
+}
+
+// ========== CAT DRAG ==========
+function initCatDrag(){
+  var nav=document.getElementById('catNav'),saved=localStorage.getItem('ms-cat-order');
+  if(saved){var order=JSON.parse(saved),addBtn=document.getElementById('addCatBtn');order.forEach(function(cat){var pill=nav.querySelector('[data-cat="'+cat+'"]');if(pill) nav.insertBefore(pill,addBtn);});}
+  var dragPill=null;
+  nav.addEventListener('dragstart',function(e){
+    dragPill=e.target.closest('.cat-pill');if(!dragPill||dragPill.classList.contains('cat-pill-add')){e.preventDefault();return;}
+    dragPill.classList.add('dragging');e.dataTransfer.effectAllowed='move';
+  });
+  nav.addEventListener('dragend',function(){
+    if(dragPill){dragPill.classList.remove('dragging');document.querySelectorAll('.cat-pill.drag-over').forEach(function(p){p.classList.remove('drag-over');});
+    var order=Array.from(nav.querySelectorAll('.cat-pill[data-cat]')).map(function(p){return p.dataset.cat;});localStorage.setItem('ms-cat-order',JSON.stringify(order));dragPill=null;}
+  });
+  nav.addEventListener('dragover',function(e){e.preventDefault();var pill=e.target.closest('.cat-pill');if(pill&&pill!==dragPill){document.querySelectorAll('.cat-pill.drag-over').forEach(function(p){p.classList.remove('drag-over');});pill.classList.add('drag-over');}});
+  nav.addEventListener('drop',function(e){e.preventDefault();var target=e.target.closest('.cat-pill');if(target&&target!==dragPill&&dragPill){var rect=target.getBoundingClientRect();if(e.clientX<rect.left+rect.width/2){nav.insertBefore(dragPill,target);}else{nav.insertBefore(dragPill,target.nextSibling);}}document.querySelectorAll('.cat-pill.drag-over').forEach(function(p){p.classList.remove('drag-over');});});
+}
+initCatDrag();restoreCustomCats();
+
+// ========== EVENT LISTENERS ==========
+document.getElementById('catNav').addEventListener('click',function(e){
+  var pill=e.target.closest('.cat-pill');if(!pill||!pill.dataset.cat||pill.classList.contains('cat-pill-add')) return;
+  if(pill.classList.contains('cat-pill-del')){deleteCustomCat(pill.parentElement);return;}
+  if(pill.classList.contains('dragging')) return;
+  loadCategory(pill.dataset.cat,pill);
+});
+document.getElementById('regionSelect').addEventListener('change',function(){
+  var sel=document.getElementById('regionSelect');sel.classList.toggle('active',sel.value!=='');
+  catPage={};catCache={};if(activeCat){var p=document.querySelector('#catNav [data-cat="'+activeCat+'"]');if(p) loadCategory(activeCat,p,true);}
+});
+document.getElementById('catNav').addEventListener('wheel',function(e){if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){e.preventDefault();document.getElementById('catNav').scrollLeft+=e.deltaY;}},{passive:false});
+
+// ========== INIT ==========
+(function init(){
+  // 恢复站点：优先 localStorage，回退服务器
+  var saved=localStorage.getItem('ms-sites');
+  if(saved){
+    try{
+      fetch('/api/sites/load',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({json:saved})})
+      .then(function(r){return r.json();}).then(function(d){if(d.code===1){updateBadge(d.total);unlockSite();updateSiteList(d.data);}else{localStorage.removeItem('ms-sites');}})
+      .catch(function(){localStorage.removeItem('ms-sites');});
+    }catch(e){localStorage.removeItem('ms-sites');}
+  }
+  // 恢复保存的URL
+  var savedUrl=localStorage.getItem('ms-sites-url');
+  if(savedUrl) document.getElementById('sitesUrl').value=savedUrl;
+  if(sitesLocked) lockSite();
+  applyCinema(); // 同步影院模式状态
+  lucide.createIcons();
+  // 滚动到顶部按钮
+  var stBtn=document.getElementById('scrollTopBtn');
+  window.addEventListener('scroll',function(){
+    stBtn.classList.toggle('show',window.scrollY>400);
+  });
+})();
+</script>
+</body>
+</html>

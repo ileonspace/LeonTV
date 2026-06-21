@@ -1,0 +1,12 @@
+# LeonTV — Cloudflare Pages 配置
+# https://developers.cloudflare.com/pages/configuration/
+
+name = "leontv"
+pages_build_output_dir = "."
+compatibility_date = "2026-06-21"
+
+# 部署说明（详见 README.md）:
+# 1. Cloudflare Dashboard → Workers & Pages → Pages → 连接到 Git
+# 2. 选择你的 GitHub 仓库
+# 3. 构建设置: 框架预设=无, 构建命令=留空, 输出目录=留空
+# 4. 保存并部署
