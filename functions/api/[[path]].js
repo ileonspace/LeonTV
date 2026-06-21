@@ -1,17 +1,18 @@
-// LeonTV v1.0 — Cloudflare Pages Functions | 
+// LeonTV v1.0 — Cloudflare Pages Functions | 2026-06-21 完美标准版
 // Fix: 无状态站点丢失 + TMDB 代理 URL 编码
 
 // ==================== 认证 ====================
 const AUTH_COOKIE = 'ltv_auth';
-
-function getAuthPwd(env) {
-  return env.LOGIN_PASSWORD || 'YOUR_PASSWORD';
-}
+function getAuthPwd(env) { return env.LOGIN_PASSWORD || 'YOUR_PASSWORD'; }
 
 function checkAuth(request, env) {
   const cookieHeader = request.headers.get('Cookie') || '';
   const cookies = Object.fromEntries(
-    cookieHeader.split(';').map(c => c.trim().split('=').map(s => s.trim()))
+    cookieHeader.split(';').map(function(c) {
+      var idx = c.indexOf('=');
+      if (idx === -1) return [c.trim(), ''];
+      return [c.substring(0, idx).trim(), decodeURIComponent(c.substring(idx + 1).trim())];
+    })
   );
   return cookies[AUTH_COOKIE] === getAuthPwd(env);
 }
@@ -137,7 +138,6 @@ function json(data, status = 200) {
 async function handleAPIFetch(url) {
   const targetUrl = url.searchParams.get('url');
   if (!targetUrl) return json({ code: 0, msg: '缺少url参数' });
-  // 安全限制：只允许获取站点JSON配置
   if(!targetUrl.match(/\.json|api\.php|provide\/vod|tvbox|api_site/i)){
     return json({ code: 0, msg: '仅支持获取站点JSON配置文件' });
   }
@@ -365,7 +365,7 @@ export async function onRequest(context) {
     });
   }
 
-  if (!checkAuth(request)) {
+  if (!checkAuth(request, env)) {
     return json({ code: -1, msg: '未授权访问，请先登录' }, 401);
   }
 
