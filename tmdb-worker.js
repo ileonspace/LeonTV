@@ -4,7 +4,7 @@
 //
 // 环境变量（Cloudflare Dashboard → Workers → tmdb → Settings → Variables）:
 //   TMDB_API_KEY = 你的 TMDB API Key (从 https://www.themoviedb.org/settings/api 获取)
-//   PASSWORD     = digital
+//   密码在代码中修改（搜索 digital 替换）
 
 export default {
   async fetch(request, env) {
