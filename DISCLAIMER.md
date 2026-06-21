@@ -11,7 +11,7 @@ LeonTV 是一个**技术学习项目**，仅为聚合搜索工具，通过第三
 1. **不存储任何影视内容**：本项目不存储、不缓存、不托管任何视频、音频、图片等多媒体文件。
 2. **不提供下载服务**：本项目不提供任何资源的直接下载、BT种子、磁力链接。
 3. **不破解加密内容**：本项目不提供任何DRM解密、付费内容破解功能。
-4. **搜索结果来自第三方**：所有搜索结果均来自用户自行配置的第三方 CMS API 站点，与开发者无关。
+4. **搜索结果来自第三方**：所有搜索结果均来自用户自行导入的 JSON 配置文件对应的第三方接口，与开发者无关。
 
 ### 法律责任
 
@@ -50,7 +50,7 @@ LeonTV is a **technical learning project** — an aggregation search tool that q
 1. **No media content storage**: This project does not store, cache, or host any video, audio, or image files.
 2. **No download services**: This project does not provide direct downloads, BT seeds, or magnet links.
 3. **No DRM circumvention**: This project does not crack or bypass any encryption or paid content protection.
-4. **Third-party results**: All search results come from third-party CMS API sites configured by users, independent of the developer.
+4. **Third-party results**: All search results come from third-party interfaces configured by users via JSON, independent of the developer.
 
 ### Legal Liability
 
