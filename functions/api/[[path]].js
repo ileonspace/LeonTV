@@ -3,14 +3,17 @@
 
 // ==================== 认证 ====================
 const AUTH_COOKIE = 'ltv_auth';
-const AUTH_PWD = 'YOUR_PASSWORD';
 
-function checkAuth(request) {
+function getAuthPwd(env) {
+  return env.LOGIN_PASSWORD || 'YOUR_PASSWORD';
+}
+
+function checkAuth(request, env) {
   const cookieHeader = request.headers.get('Cookie') || '';
   const cookies = Object.fromEntries(
     cookieHeader.split(';').map(c => c.trim().split('=').map(s => s.trim()))
   );
-  return cookies[AUTH_COOKIE] === AUTH_PWD;
+  return cookies[AUTH_COOKIE] === getAuthPwd(env);
 }
 
 // ==================== TMDB 代理配置 ====================
