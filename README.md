@@ -2,8 +2,10 @@
 
 多源影视搜索聚合 — JSON 配置驱动，NDJSON 流式返回结果。
 
-![License](https://img.shields.io/badge/license-MIT-green)
-![Platform](https://img.shields.io/badge/platform-Cloudflare%20Pages-orange)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Cloudflare%20Pages-orange)](https://pages.cloudflare.com)
+[![Made with](https://img.shields.io/badge/made%20with-Vanilla%20JS-yellow)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](CONTRIBUTING.md)
 
 > ⚠️ **重要声明**  
 > 本项目为**技术学习项目**，不存储任何影视内容，搜索结果来自第三方公开API。  
