@@ -432,7 +432,7 @@ button{padding:10px 20px;font-size:16px;background:#0066CC;color:#fff;border:non
     html += `</div></div>`;
   });
 
-  html += `<div class="bottom">数据来自第三方API，仅供技术学习 · LeonTV</div></body></html>`;
+  html += `<div class="bottom">数据来源于公开API接口，仅供技术学习 · LeonTV</div></body></html>`;
   return html;
 }
 

@@ -19,7 +19,7 @@
 | 搜索 | NDJSON 流式推送 · ReadableStream · AbortController |
 | 后端 | Cloudflare Functions / Vercel Serverless / Netlify Functions |
 | 本地开发 | Node.js + Express |
-| 数据源 | 27个 CMS API 站点 · TMDB API (可选) |
+| 数据源 | JSON 导入配置 · TMDB API (可选) |
 | 存储 | localStorage (站点配置/搜索历史/观影记录) |
 | 部署 | Wrangler CLI · GitHub Actions · Docker |
 
