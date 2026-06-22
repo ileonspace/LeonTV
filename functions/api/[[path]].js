@@ -1,9 +1,9 @@
-// LeonTV v1.0 — Cloudflare Pages Functions | 2026-06-21 完美标准版
+// LeonTV v4.0 Golden — Cloudflare Pages Functions | 2026-06-21 完美标准版
 // Fix: 无状态站点丢失 + TMDB 代理 URL 编码
 
 // ==================== 认证 ====================
 const AUTH_COOKIE = 'ltv_auth';
-function getAuthPwd(env) { return env.LOGIN_PASSWORD || 'YOUR_PASSWORD'; }
+function getAuthPwd(env) { return env.LOGIN_PASSWORD || ''; }
 
 function checkAuth(request, env) {
   const cookieHeader = request.headers.get('Cookie') || '';
@@ -23,6 +23,7 @@ const TMDB_IMG_BASE = 'https://image.tmdb.org';
 
 // ==================== 模块级状态 ====================
 let sites = [];
+const tvRelay = new Map(); // TV手机输入中转
 
 // ==================== 工具函数 ====================
 const SITE_TIMEOUT = 6000;
@@ -138,9 +139,8 @@ function json(data, status = 200) {
 async function handleAPIFetch(url) {
   const targetUrl = url.searchParams.get('url');
   if (!targetUrl) return json({ code: 0, msg: '缺少url参数' });
-  if(!targetUrl.match(/\.json|api\.php|provide\/vod|tvbox|api_site/i)){
-    return json({ code: 0, msg: '仅支持获取站点JSON配置文件' });
-  }
+  // 宽泛格式：不限制URL格式，由客户端 flexibleParseSites 负责解析验证
+  // 安全：此端点需通过 checkAuth 认证，仅登录用户可调用
   try {
     const res = await fetch(targetUrl, { headers: { 'User-Agent': 'LeonTV/3.4' } });
     const text = await res.text();
@@ -174,9 +174,17 @@ async function handleSitesLoad(request) {
     } else {
       return json({ code: 0, msg: '请提供 url 或 json 参数' });
     }
+    // 宽泛格式解析：支持 api_site / data / 单对象 等多种格式
     let siteList = [];
     if (Array.isArray(rawData)) { siteList = rawData; }
     else if (rawData.sites && Array.isArray(rawData.sites)) { siteList = rawData.sites; }
+    else if (rawData.api_site) {
+      // api_site: 数组 或 {domain: {name, api}} 对象
+      if (Array.isArray(rawData.api_site)) { siteList = rawData.api_site; }
+      else { siteList = Object.keys(rawData.api_site).map(function(k){ return rawData.api_site[k]; }); }
+    }
+    else if (rawData.data && Array.isArray(rawData.data)) { siteList = rawData.data; }
+    else if (rawData.api && typeof rawData.api === 'string') { siteList = [rawData]; }
     else { return json({ code: 0, msg: 'JSON格式无效：需要站点数组或包含sites字段' }); }
 
     sites = siteList
@@ -365,7 +373,8 @@ export async function onRequest(context) {
     });
   }
 
-  if (!checkAuth(request, env)) {
+  // TV手机输入中继跳过认证
+  if (path !== '/api/tv/relay' && !checkAuth(request, env)) {
     return json({ code: -1, msg: '未授权访问，请先登录' }, 401);
   }
 
@@ -385,6 +394,20 @@ export async function onRequest(context) {
     }
     if (path === '/api/detail' && request.method === 'GET') {
       return handleDetail(url);
+    }
+    // TV手机输入中转
+    if (path === '/api/tv/relay') {
+      if (request.method === 'POST') {
+        try {
+          var b = await request.json();
+          if (b.key && b.q) { tvRelay.set(String(b.key), String(b.q)); return json({ code: 1 }); }
+        } catch (e) {}
+        return json({ code: 0 }, 400);
+      }
+      var key = url.searchParams.get('key');
+      var val = key ? tvRelay.get(key) : null;
+      if (val) { tvRelay.delete(key); return json({ code: 1, q: val }); }
+      return json({ code: 0 });
     }
     if (path.startsWith('/api/tmdb/') && request.method === 'GET') {
       return handleTMDBProxy(url, env);

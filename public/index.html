@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<!-- LeonTV — 2026-06-21 移动端优化版 -->
+<!-- LeonTV v4.5 — 2026-06-21 移动端优化版 -->
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>LeonTV</title>
+<script>fetch('https://tj.yun.bar/api/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({site_id:'LeonTV',path:window.location.pathname})}).catch(e=>{});</script>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.14/dist/hls.min.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <style>
@@ -265,8 +266,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
     </div>
   </div>
   <div class="lock-banner" id="lockBanner">
-    <p style="font-size:48px;margin-bottom:12px;color:var(--text3);"><i data-lucide="lock"></i></p>
-    <p style="font-size:16px;font-weight:600;margin-bottom:6px;">请先加载站点配置</p>
+    <p style="font-size:48px;margin-bottom:12px;color:#FF8C00;"><i data-lucide="lock"></i></p>
+    <p style="font-size:16px;font-weight:600;margin-bottom:6px;color:#FF8C00;">请先加载站点配置</p>
     <p style="font-size:13px;color:var(--text3);">点击右上角 <i data-lucide="bolt" style="width:1em;height:1em;vertical-align:-.15em;"></i> 导入站点JSON，激活全部功能</p>
   </div>
   <div class="status-bar" id="statusBar" style="display:none"></div>
@@ -284,12 +285,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 <footer class="site-footer">
   <p>数据来源于第三方API，不存储任何影视资源，仅供技术学习</p>
   <p>内容来自互联网接口，版权归原权利人所有 · 如有侵权请联系删除</p>
-  <p style="opacity:.5;">LeonTV</p>
+  <p style="opacity:.5;">LeonTV v4.5</p>
 </footer>
 
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
-    <div class="modal-header"><h3><i data-lucide="settings"></i> 站点配置 <span style="font-size:11px;color:var(--text3);font-weight:400;">v1.0</span></h3><button class="modal-close" onclick="closeSettings()"><i data-lucide="x"></i></button></div>
+    <div class="modal-header"><h3><i data-lucide="settings"></i> 站点配置 <span style="font-size:11px;color:var(--text3);font-weight:400;">v4.4</span></h3><button class="modal-close" onclick="closeSettings()"><i data-lucide="x"></i></button></div>
     <div class="modal-body">
       <div class="modal-tabs">
         <button class="modal-tab active" id="tabUrl" onclick="switchTab('url')"><i data-lucide="link"></i> URL</button>
@@ -388,76 +389,119 @@ function smsg(type,txt){var e=document.getElementById('settingsMsg');e.textConte
 function smsgLoading(txt){var e=document.getElementById('settingsMsg');e.innerHTML='<span class="import-spinner"></span> '+(txt||'数据导入中…');e.className='msg loading';}
 
 // ========== 宽泛格式解析 ==========
+// 核心理念：不管字段叫什么，自动识别 API URL + 名称对
+// API vs 普通网址：必须有 /api/ / provide / php / vod / ?ac= 等特征
 function flexibleParseSites(raw){
   var sites=[],seen=new Set();
-  // 去重key：保留 ?url= / ?format= 等关键参数，只去掉 ?ac=list 这种
   function dedupeKey(api){return api.replace(/[\?&]ac=list(?=&|$)/,'').replace(/[\?&]ac=detail(?=&|$)/,'').replace(/[,\}\]"')。，]+$/,'');}
   function add(name,api){var k=dedupeKey(api);if(!seen.has(k)&&k.startsWith('http')){seen.add(k);sites.push({name:name||'未命名',api:k});}}
+  function domainName(url){try{return new URL(url).hostname.replace(/^(www|api|m)\./,'');}catch(e){return url.replace(/https?:\/\//,'').split('/')[0];}}
+  // 判断是否是API URL（排除普通网址如 detail/官网链接）
+  function isApiUrl(u){
+    if(!u||!u.startsWith('http')) return false;
+    var parts=u.split('/');
+    if(parts.length<4) return false; // 裸域名，不是API
+    var path=u.substring(parts[0]+'//'+parts[2].length);
+    // 必须有明显的API特征路径
+    return /\/api\/|\/api\.|provide\/vod|\.php|\/vod\/|tvbox|api_site|\?ac=|\?format=|\?source=/i.test(u);
+  }
 
   // 1) 标准JSON：数组/对象/sites/data/api_site 字段
   try{
     var p=JSON.parse(raw);
-    var arr=Array.isArray(p)?p:(p.sites||p.data||p.api_site||(p.api?[p]:[]));
-    // api_site 是 {domain: {name,api}} 格式，转数组
+    var arr=Array.isArray(p)?p:(p.sites||p.data||p.api_site||(p.api||p.url?[p]:[]));
     if(p.api_site&&!Array.isArray(p.api_site)){arr=[];Object.keys(p.api_site).forEach(function(k){arr.push(p.api_site[k]);});}
     if(!Array.isArray(arr)) arr=[];
-    arr.forEach(function(s){if(s&&s.api&&typeof s.api==='string') add(s.name||s.key||'',s.api);});
+    arr.forEach(function(s){if(s&&typeof s==='object'){
+      var u=s.api||s.url||s.link||s.source||s.endpoint||s.api_url||s.apiUrl||s.playUrl||s.play_url||'';
+      if(typeof u==='string'&&u.startsWith('http')&&isApiUrl(u)){
+        var n=s.name||s.site||s.sitename||s.title||s.key||s.domain||s.label||s.alias||'';
+        add(n,u);
+      }else{
+        // 兜底：遍历对象值找第一个API特征URL
+        var keys=Object.keys(s);
+        for(var ki=0;ki<keys.length;ki++){
+          var v=s[keys[ki]];
+          if(typeof v==='string'&&v.startsWith('http')&&isApiUrl(v)){
+            var nm=s.name||s.site||s.sitename||s.title||s.key||s.label||'';
+            add(nm,v);break;
+          }
+        }
+      }
+    }});
   }catch(e){}
 
-  // 2) 按对象块配对：在每对 {} 内找 name+api，跨行也无所谓
-  var m,pos=0,reBlock=/\{[\s\S]*?\}/g;
-  while((m=reBlock.exec(raw))!==null){
-    var block=m[0];
-    var nmM=/"name"\s*:\s*"([^"]+)"/.exec(block);
-    var apM=/"api"\s*:\s*"(https?:\/\/[^"]+)"/.exec(block);
-    if(apM) add(nmM?nmM[1]:'',apM[1]);
-  }
-  // 如果上面没找到，全局收集再配对（数量相等时可靠）
-  if(sites.length===0){
-    var namesAll=[],apisAll=[];
-    var reName=/"name"\s*:\s*"([^"]+)"/g,reApi=/"api"\s*:\s*"(https?:\/\/[^"]+)"/g;
-    while((m=reName.exec(raw))!==null) namesAll.push(m[1]);
-    while((m=reApi.exec(raw))!==null) apisAll.push(m[1]);
-    for(var i=0;i<Math.max(namesAll.length,apisAll.length);i++){
-      var ap=apisAll[i];if(ap) add(namesAll[i]||'',ap);
+  // 如果策略1已找到足够站点，跳过重策略直接兜底
+  if(sites.length<3){
+    // 2) 按对象块配对：每对 {} 内找 API URL + 名称
+    var m,reBlock=/\{[\s\S]*?\}/g,blockCount=0;
+    while((m=reBlock.exec(raw))!==null&&blockCount<200){
+      blockCount++;
+      var block=m[0];
+      var urlRe=/"([^"]*)"\s*:\s*"(https?:\/\/[^"]+)"/g,m2,urls=[];
+      while((m2=urlRe.exec(block))!==null){
+        if(isApiUrl(m2[2])) urls.push({key:m2[1],url:m2[2]});
+      }
+      var nameRe=/"([^"]*)"\s*:\s*"([^"]{1,80})"/g,names=[];
+      while((m2=nameRe.exec(block))!==null){
+        if(!/^https?:\/\//.test(m2[2])&&!/^[a-z]{2,8}$/i.test(m2[2])&&m2[2].length>1) names.push(m2[2]);
+      }
+      for(var j=0;j<Math.max(urls.length,names.length);j++){
+        if(urls[j]) add(names[j]||domainName(urls[j].url),urls[j].url);
+      }
+    }
+    // 全局收集：全文中所有API URL + 名称配对
+    if(sites.length===0){
+      var allUrls=[],allNames=[];
+      var reUrl=/"([^"]*)"\s*:\s*"(https?:\/\/[^"]+)"/g;
+      while((m=reUrl.exec(raw))!==null){if(isApiUrl(m[2])) allUrls.push(m[2]);}
+      var reNm=/"([^"]*)"\s*:\s*"([^"]{2,80})"/g;
+      while((m=reNm.exec(raw))!==null){if(!/^https?:\/\//.test(m[2])) allNames.push(m[2]);}
+      for(var i=0;i<Math.max(allNames.length,allUrls.length);i++){
+        if(allUrls[i]) add(allNames[i]||domainName(allUrls[i]),allUrls[i]);
+      }
+    }
+
+    // 3) 域名key对象: "domain":{"xxx":"name","yyy":"https://..."}
+    if(sites.length<3){
+      var re3=/"([^"]+)"\s*:\s*\{([^}]+)\}/g;
+      while((m=re3.exec(raw))!==null){
+        var inner=m[2];
+        var urlM=/"([^"]*)"\s*:\s*"(https?:\/\/[^"]+)"/.exec(inner);
+        if(urlM&&isApiUrl(urlM[2])){
+          var nameM=/"([^"]*)"\s*:\s*"([^"]{1,80})"/.exec(inner);
+          add(nameM&&!/^https?:\/\//.test(nameM[2])?nameM[2]:m[1],urlM[2]);
+        }
+      }
+    }
+
+    // 4) 无引号键值: key: https://... + key: 名称
+    if(sites.length<5){
+      var reUrl2=/\b(?:api|url|link|source|endpoint|api_url|apiUrl|playUrl|play_url)\s*:?\s*(https?:\/\/[^\s\n,}]+)/gi;
+      var reName2=/\b(?:name|site|sitename|title|key|domain|label|alias)\s*:?\s*(.+?)(?:\n|$|\b(?:api|url|link|source)\b)/gi;
+      var apis2=[],names2=[];
+      while((m=reUrl2.exec(raw))!==null){var uu=m[1].replace(/[,\}\]"')]+$/,'');if(isApiUrl(uu)) apis2.push(uu);}
+      while((m=reName2.exec(raw))!==null){var v=m[1].trim().replace(/[,\}\]"')]+$/,'');if(v&&v.length<80) names2.push(v);}
+      for(var i=0;i<Math.max(names2.length,apis2.length);i++){
+        if(apis2[i]) add(names2[i]||domainName(apis2[i]),apis2[i]);
+      }
     }
   }
 
-  // 3) 域名key对象: "domain":{"name":"x","api":"https://..."}
-  var re3=/"([^"]+)"\s*:\s*\{[\s\S]*?"api"\s*:\s*"(https?:\/\/[^"]+)"/g;
-  while((m=re3.exec(raw))!==null){
-    // 尝试取同一对象里的name
-    var block=raw.substring(m.index,re3.lastIndex);
-    var bm=/"name"\s*:\s*"([^"]+)"/.exec(block);
-    add(bm?bm[1]:m[1],m[2]);
-  }
-
-  // 4) 无引号: name: xxx 和 api: https://...
-  var re4=/\bapi\s*:?\s*(https?:\/\/[^\s\n,}]+)/gi;
-  var re5=/\bname\s*:?\s*(.+?)(?:\n|$|\bapi\b)/gi;
-  var apis2=[],names2=[];
-  while((m=re4.exec(raw))!==null) apis2.push(m[1].replace(/[,\}\]"')]+$/,''));
-  while((m=re5.exec(raw))!==null){var v=m[1].trim().replace(/[,\}\]"')]+$/,'');if(v&&v.length<80) names2.push(v);}
-  for(var i=0;i<Math.max(names2.length,apis2.length);i++){
-    var nm2=names2[i]||'',ap2=apis2[i];
-    if(ap2) add(nm2,ap2);
-  }
-
-  // 5) 兜底刮URL：只要包含 /api/ 或 provide/vod 等路径标记的
-  var re6=/https?:\/\/[^\s"'<>一-鿿　-〿＀-￯]+/g;
-  while((m=re6.exec(raw))!==null){
-    var url=m[0].replace(/[,\}\]"')。，]+$/,'');
-    // 必须有路径部分（不是裸域名）且包含API特征
-    if(url.split('/').length>3&&(url.indexOf('/api')>=0||url.indexOf('provide')>=0||url.indexOf('php')>=0)){
-      try{var u=new URL(url);add(u.hostname.replace(/^(www|api|m)\./,''),url);}catch(e){}
+  // 5) 兜底刮URL：只要URL路径包含API特征
+  if(sites.length<3){
+    var re6=/https?:\/\/[^\s"'<>一-鿿　-〿＀-￯]+/g;
+    while((m=re6.exec(raw))!==null){
+      var url=m[0].replace(/[,\}\]"')。，]+$/,'');
+      if(isApiUrl(url)){var nm=domainName(url);if(nm&&nm.indexOf('.')>0) add(nm,url);}
     }
   }
-  // 6) sites太少则更宽：任何带路径的URL都试
+  // 6) sites太少则更宽：任何带路径的URL都试（至少要有路径深度）
   if(sites.length<2){
     var re7=/https?:\/\/[^\s"'<>]+\/[^\s"'<>]+/g;
     while((m=re7.exec(raw))!==null){
       var u2=m[0].replace(/[,\}\]"')。，]+$/,'');
-      if(u2.split('/').length>3) add(u2.replace(/https?:\/\//,'').split('/')[0],u2);
+      if(u2.split('/').length>3) add(domainName(u2),u2);
     }
   }
 
@@ -467,20 +511,21 @@ function flexibleParseSites(raw){
 async function loadUrl(){
   var u=document.getElementById('sitesUrl').value.trim();if(!u){smsg('err','请输入URL');return;}
   smsgLoading('正在获取JSON…');
-  try{var r=await fetch('/api/fetch?url='+encodeURIComponent(u));var d=await r.json();if(d.code!==1){smsg('err',d.msg);return;}localStorage.setItem('ms-sites-url',u);doFlexibleImport(d.data);}
+  try{var r=await fetch('/api/fetch?url='+encodeURIComponent(u));var d=await r.json();
+    if(d.code===-1){localStorage.removeItem('ms-auth');localStorage.removeItem('ms-login-pwd');closeSettings();document.getElementById('loginOverlay').classList.remove('hidden');document.getElementById('loginMsg').textContent='会话已过期，请重新登录';return;}
+    if(d.code!==1){smsg('err',d.msg);return;}localStorage.setItem('ms-sites-url',u);doFlexibleImport(d.data);}
   catch(e){smsg('err','获取失败: '+e.message);}
 }
 function loadJson(){var j=document.getElementById('sitesJson').value.trim();if(!j){smsg('err','请粘贴JSON');return;}doFlexibleImport(j);}
 
 async function doFlexibleImport(raw){
-  smsgLoading('数据导入中…');
-  // 让loading动画先渲染
-  await new Promise(function(r){setTimeout(r,80);});
+  var sizeKB=(raw.length/1024).toFixed(0);
+  smsgLoading('正在解析 '+sizeKB+'KB 数据…');
+  await new Promise(function(r){setTimeout(r,60);});
   var sites=flexibleParseSites(raw);
   if(sites.length===0){smsg('err','未识别到有效站点（需要包含 api 地址）');return;}
-  // 更新进度
   var el=document.getElementById('settingsMsg');
-  el.innerHTML='<span class="import-spinner"></span> 识别到 <b>'+sites.length+'</b> 个站点，正在加载…';
+  el.innerHTML='<span class="import-spinner"></span> 识别到 <b>'+sites.length+'</b> 个站点，正在提交到服务器…';
   loadSites({json:JSON.stringify(sites)});
 }
 async function loadSites(body){
@@ -489,6 +534,12 @@ async function loadSites(body){
     var d=await r.json();
     if(d.code===1){smsg('ok',d.msg);updateBadge(d.total);unlockSite();
       var raw=typeof body.json==='string'?body.json:JSON.stringify(body.json);localStorage.setItem('ms-sites',raw);localStorage.setItem('ms-sites-time',new Date().toLocaleString('zh-CN'));updateSiteList(d.data);}
+    else if(d.code===-1){
+      // 未登录 → 清除旧凭证，关闭设置弹窗，弹出登录界面
+      localStorage.removeItem('ms-auth');localStorage.removeItem('ms-login-pwd');
+      closeSettings();document.getElementById('loginOverlay').classList.remove('hidden');
+      document.getElementById('loginMsg').textContent='会话已过期，请重新登录';
+    }
     else smsg('err',d.msg);
   }catch(e){smsg('err',e.message);}
 }
@@ -909,8 +960,8 @@ var CAT_PARAMS={
 };
 var catPage={},activeCat=null,catTimer=null,catLoading=false,catCache={};
 var SERIES_CATS={marvel:1,dc:1,starwars:1,harrypotter:1,jurassic:1,bond:1,lotr:1};
-var TMDB='https://your-tmdb-worker.workers.dev';
-function tmdbFetch(path,timeout){var sep=path.indexOf('?')>=0?'&':'?';var url=TMDB+path+sep+'pwd='+(localStorage.getItem('ms-login-pwd')||'YOUR_PASSWORD');if(!timeout)return fetch(url);var ctrl=new AbortController();var timer=setTimeout(function(){ctrl.abort();},timeout);return fetch(url,{signal:ctrl.signal}).finally(function(){clearTimeout(timer);});}
+var TMDB='https://tmdb.yun.bar';
+function tmdbFetch(path,timeout){var sep=path.indexOf('?')>=0?'&':'?';var url=TMDB+path+sep+'pwd='+(localStorage.getItem('ms-login-pwd')||'');if(!timeout)return fetch(url);var ctrl=new AbortController();var timer=setTimeout(function(){ctrl.abort();},timeout);return fetch(url,{signal:ctrl.signal}).finally(function(){clearTimeout(timer);});}
 
 async function loadCategory(cat,pill,forceReload){
   abortAll();catAbort=new AbortController();var sig=catAbort.signal;
@@ -1033,7 +1084,7 @@ function renderCatGrid(items,cat,append){
   var h='';
   for(var i=0;i<items.length;i++){
     var item=items[i],title=item.title||item.name||'',rating=item.vote_average?Number(item.vote_average).toFixed(1):'?';
-    var poster=item.poster_path?'<img class="cat-card-img" src="'+TMDB+'/image/t/p/w300'+item.poster_path+'?pwd='+(localStorage.getItem('ms-login-pwd')||'YOUR_PASSWORD')+'" loading="lazy" onerror="this.style.background=\'var(--border)\'">':'<div class="cat-card-img cat-card-noposter"><i data-lucide="clapperboard"></i></div>';
+    var poster=item.poster_path?'<img class="cat-card-img" src="'+TMDB+'/image/t/p/w300'+item.poster_path+'?pwd='+(localStorage.getItem('ms-login-pwd')||'')+'" loading="lazy" onerror="this.style.background=\'var(--border)\'">':'<div class="cat-card-img cat-card-noposter"><i data-lucide="clapperboard"></i></div>';
     var date=(item.release_date||item.first_air_date||'').substring(0,7);
     h+='<div class="cat-card" onclick="searchCatItem(\''+escAttr(title)+'\')" title="'+esc(title)+'">'+poster+'<div class="cat-card-info"><div class="cat-card-title">'+esc(title)+'</div><div class="cat-card-meta">'+(date?'<span>'+date+'</span>':'')+'<span class="cat-card-rating">⭐ '+rating+'</span></div></div></div>';
   }

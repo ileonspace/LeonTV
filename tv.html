@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LeonTV</title>
+<style>
+*{margin:0;padding:0}body{background:#0a0a0f;color:#e0e0e0;font-family:Arial,sans-serif;padding:12px}
+.top{background:#111;padding:14px;border-radius:6px;margin-bottom:14px}
+.logo{font-size:24px;font-weight:bold;color:#FF8C00}.logo span{color:#06c}
+form{margin-top:10px}input{width:68%;padding:10px;font-size:16px;border:1px solid #333;border-radius:4px;background:#1a1a2e;color:#fff}
+button{padding:10px 18px;font-size:16px;background:#06c;color:#fff;border:none;border-radius:4px;margin-left:6px;cursor:pointer}
+.status{color:#888;font-size:13px;margin-top:8px}.loading{color:#06c}
+.card{background:#111;border-radius:6px;padding:12px;margin-bottom:10px}
+.title{font-size:18px;font-weight:bold;color:#fff;margin-bottom:4px}
+.meta{font-size:13px;color:#888;margin-bottom:6px}
+.ep-btn{display:inline-block;padding:8px 14px;margin:3px;background:#1a1a2e;color:#ccc;text-decoration:none;border-radius:4px;font-size:14px;border:1px solid #333}
+.ep-btn:focus{background:#06c;color:#fff;outline:none}
+.src-label{font-size:11px;color:#666;margin-left:2px}
+.empty{padding:60px;text-align:center;color:#555;font-size:16px}
+.bottom{text-align:center;color:#444;font-size:11px;padding:20px;margin-top:20px}
+</style></head><body>
+<div class="top">
+<div class="logo">📺 Leon<span>TV</span></div>
+<form onsubmit="doSearch();return false">
+<input id="kw" placeholder="输入影片名..." autofocus><button type="submit">搜索</button>
+</form>
+<div class="status" id="status"></div></div>
+<div id="results"><div class="empty">🔍 输入影片名开始搜索</div></div>
+<div class="bottom">数据来自第三方API，仅供技术学习 · LeonTV</div>
+
+<script>
+var SITES=[];
+var SITE_TIMEOUT=5000;
+
+// 默认站点配置（可替换）
+var DEFAULT_SITES=[
+{name:"爱奇艺",key:"iqiyizyapi.com",api:"https://iqiyizyapi.com/api.php/provide/vod"},
+{name:"茅台资源",key:"mtzy.me",api:"https://caiji.maotaizy.cc/api.php/provide/vod"},
+{name:"卧龙资源",key:"wolongzyw.com",api:"https://wolongzyw.com/api.php/provide/vod"},
+{name:"iKun资源",key:"ikunzy.com",api:"https://ikunzyapi.com/api.php/provide/vod"},
+{name:"猫眼资源",key:"maoyanzy.com",api:"https://api.maoyanapi.top/api.php/provide/vod"},
+{name:"量子资源",key:"lzcaiji.com",api:"https://cj.lzcaiji.com/api.php/provide/vod"},
+{name:"360资源",key:"360zy.com",api:"https://360zyzz.com/api.php/provide/vod"},
+{name:"极速资源",key:"jszyapi.com",api:"https://jszyapi.com/api.php/provide/vod"},
+{name:"魔都资源",key:"moduzy.net",api:"https://www.mdzyapi.com/api.php/provide/vod"},
+{name:"暴风资源",key:"bfzy.tv",api:"https://bfzyapi.com/api.php/provide/vod"},
+{name:"最大资源",key:"zuida.xyz",api:"https://api.zuidapi.com/api.php/provide/vod"},
+{name:"无尽资源",key:"wujinzy.me",api:"https://api.wujinapi.me/api.php/provide/vod"},
+{name:"新浪资源",key:"xinlangapi.com",api:"https://api.xinlangapi.com/xinlangapi.php/provide/vod"},
+{name:"旺旺资源",key:"wwzy.tv",api:"https://api.wwzy.tv/api.php/provide/vod"},
+{name:"速播资源",key:"subozy.com",api:"https://subocaiji.com/api.php/provide/vod"},
+{name:"飘零资源",key:"p2100.net",api:"https://p2100.net/api.php/provide/vod"},
+{name:"U酷影视",key:"ukuapi88.com",api:"https://api.ukuapi88.com/api.php/provide/vod"},
+{name:"魔都动漫",key:"moduapi.cc",api:"https://caiji.moduapi.cc/api.php/provide/vod"}
+];
+
+function loadSites(){
+  try{var s=localStorage.getItem('tv_sites');if(s){SITES=JSON.parse(s);return;}}catch(e){}
+  SITES=DEFAULT_SITES.slice();
+}
+
+function doSearch(){
+  var kw=document.getElementById('kw').value.trim();if(!kw)return;
+  document.getElementById('status').innerHTML='<span class="loading">搜索中...</span>';
+  document.getElementById('results').innerHTML='';
+  var all=[],done=0,total=SITES.length;
+  for(var i=0;i<SITES.length;i++){
+    searchOne(SITES[i],kw,function(r){
+      all.push(r);done++;
+      document.getElementById('status').innerHTML='搜索 '+done+'/'+total+' · '+all.reduce(function(s,x){return s+(x.results?x.results.length:0);},0)+'部';
+      if(done===total) render(all);
+    });
+  }
+}
+
+function searchOne(site,kw,cb){
+  var xhr=new XMLHttpRequest();
+  xhr.timeout=SITE_TIMEOUT;
+  xhr.onreadystatechange=function(){
+    if(xhr.readyState!==4)return;
+    if(xhr.status===200){
+      try{var d=JSON.parse(xhr.responseText);cb({site:site.name,key:site.key,results:mapResults(d.list||[])});}catch(e){cb({site:site.name,key:site.key,results:[],error:'parse'});}
+    }else{cb({site:site.name,key:site.key,results:[],error:'HTTP '+xhr.status});}
+  };
+  xhr.ontimeout=function(){cb({site:site.name,key:site.key,results:[],error:'timeout'});};
+  xhr.onerror=function(){cb({site:site.name,key:site.key,results:[],error:'network'});};
+  xhr.open('GET',site.api+'?ac=detail&wd='+encodeURIComponent(kw));
+  xhr.send();
+}
+
+function mapResults(list){
+  if(!list)return[];
+  var r=[];
+  for(var i=0;i<list.length;i++)r.push({
+    vod_name:list[i].vod_name||'',vod_pic:list[i].vod_pic||'',
+    vod_year:list[i].vod_year||'',vod_remarks:list[i].vod_remarks||'',
+    play_urls:parseUrls(list[i].vod_play_url||'')
+  });
+  return r;
+}
+
+function parseUrls(s){
+  if(!s)return[];
+  var urls=[],parts=s.split('#');
+  for(var i=0;i<parts.length;i++){
+    var p=parts[i].trim();if(!p)continue;
+    var idx=p.indexOf('$');
+    if(idx===-1){if(p.indexOf('http')===0)urls.push({label:'播放',url:p});}
+    else{
+      var label=p.substring(0,idx).trim(),rest=p.substring(idx+1).trim();
+      var eps=rest.split('$');
+      for(var j=0;j<eps.length;j++){
+        var e=eps[j].trim();if(!e)continue;
+        var eidx=e.indexOf('$');
+        if(eidx!==-1&&e.indexOf('http')!==0){urls.push({label:label+' '+e.substring(0,eidx).trim(),url:e.substring(eidx+1).trim()});}
+        else if(e.indexOf('http')===0)urls.push({label:label,url:e});
+      }
+    }
+  }
+  return urls;
+}
+
+function render(all){
+  var map={};
+  for(var si=0;si<all.length;si++){
+    var r=all[si];if(!r.results)continue;
+    for(var mi=0;mi<r.results.length;mi++){
+      var m=r.results[mi],k=m.vod_name.replace(/\s+/g,'').toLowerCase();
+      if(!map[k])map[k]={vod_name:m.vod_name,vod_year:m.vod_year,vod_remarks:m.vod_remarks,urls:{}};
+      for(var ui=0;ui<m.play_urls.length;ui++){
+        var u=m.play_urls[ui];
+        if(!map[k].urls[u.label])map[k].urls[u.label]=[];
+        map[k].urls[u.label].push({url:u.url,site:r.site});
+      }
+    }
+  }
+  var movies=[];
+  for(var k in map)movies.push(map[k]);
+  movies.sort(function(a,b){return Object.keys(b.urls).length-Object.keys(a.urls).length;});
+
+  var html='';
+  for(var i=0;i<movies.length;i++){
+    var m=movies[i];
+    var epKeys=[];
+    for(var ek in m.urls)epKeys.push(ek);
+    epKeys.sort();
+    html+='<div class="card"><div class="title">'+esc(m.vod_name)+'</div>';
+    html+='<div class="meta">'+(m.vod_year||'')+' '+(m.vod_remarks||'')+' · '+epKeys.length+'集</div><div>';
+    for(var ei=0;ei<epKeys.length;ei++){
+      var ep=epKeys[ei],srcs=m.urls[ep];
+      html+='<a class="ep-btn" href="'+escUrl(srcs[0].url)+'">'+esc(ep);
+      if(srcs.length>1)html+=' <span class="src-label">('+srcs.length+'源)</span>';
+      html+='</a>';
+      if(srcs.length>1){
+        for(var si=1;si<srcs.length;si++)
+          html+='<a class="ep-btn" href="'+escUrl(srcs[si].url)+'" style="font-size:11px;padding:5px 8px">'+esc(srcs[si].site)+'</a>';
+      }
+    }
+    html+='</div></div>';
+  }
+  document.getElementById('results').innerHTML=html||'<div class="empty">未找到结果</div>';
+}
+
+function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function escUrl(s){return (s||'').replace(/"/g,'%22');}
+
+loadSites();
+</script>
+</body></html>
