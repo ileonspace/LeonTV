@@ -1,251 +1,165 @@
 # LeonTV
 
-多源影视搜索聚合 — JSON 配置驱动，NDJSON 流式返回结果。
+多源影视搜索聚合 — JSON 配置驱动，NDJSON 流式返回，一键部署
 
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Cloudflare%20Pages-orange)](https://pages.cloudflare.com)
-[![Made with](https://img.shields.io/badge/made%20with-Vanilla%20JS-yellow)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](CONTRIBUTING.md)
+[![Cloudflare](https://img.shields.io/badge/Cloudflare-Pages-orange)](https://pages.cloudflare.com)
+[![Vercel](https://img.shields.io/badge/Vercel-Deploy-black)](https://vercel.com)
+[![Netlify](https://img.shields.io/badge/Netlify-Deploy-blue)](https://netlify.com)
 
-> ⚠️ **重要声明**  
-> 本项目为**技术学习项目**，不存储任何影视内容，搜索结果来自第三方公开API。  
-> 使用者须遵守当地法律法规，**开发者不承担任何责任**。  
-> 详见 **[DISCLAIMER.md](DISCLAIMER.md)**（中英双语免责声明）
+> ⚠️ **重要声明**：本项目为技术学习项目，不存储任何影视内容，搜索结果来自第三方公开 API。
 
-## 功能特性
+---
 
-- 🔍 **多源聚合搜索**，NDJSON 流式推送，首结果秒出
-- 🎬 **剧集去重 + 多线路自动切换**（高清优先，失败降级）
-- 📺 **11个预设分类**：热门电影、正在播出、高分神作、动作、喜剧、科幻、恐怖、纪录片、漫威、DC、星球大战等
-- ⭐ **TMDB 评分/海报/简介**自动补全
-- 🌙 **暗色主题 + 影院模式**
-- 📱 **移动端完美适配**
-- 🧩 **宽泛JSON导入**：支持多种站点配置格式，自动识别
-- 📼 **观影记录**：自动保存进度，点击续播
-- ⚡ **超时优化**：6秒快速失败，不卡搜索
+## 🚀 一键部署
 
-## 部署清单
-
-> 两种部署方式都需要以下配置
-
-| 组件 | 必需 | 说明 |
+| 平台 | 按钮 | 费用 |
 |------|------|------|
-| Cloudflare Pages | ✅ 必须 | 设置 1 个环境变量 `LOGIN_PASSWORD` |
-| TMDB Worker | ⚠️ 可选 | 不部署则无分类浏览/评分/海报，搜索播放不受影响 |
-
-### TMDB Worker 部署后
-
-部署并配置 `TMDB_API_KEY` + `PASSWORD` 环境变量后，额外获得：
-- 📺 11个预设分类（热门电影、动作片、漫威、DC 等）
-- ⭐ TMDB 评分和影片简介
-- 🖼️ 高清海报图片
+| **Cloudflare Pages** | `wrangler pages deploy` | 免费 ✅ |
+| **Vercel** | 关联 GitHub 即部署 | 免费 ✅ |
+| **Netlify** | 关联 GitHub 即部署 | 免费 ✅ |
 
 ---
 
-## 快速开始
+## ☁️ Cloudflare Pages（推荐）
 
-### 方式 A：GitHub + Cloudflare Pages（推荐）
-
-#### 1. Fork 本仓库
-
-点击右上角 **Fork** → 创建你自己的副本
-
-#### 2. 连接 Cloudflare Pages
-
-1. 打开 [Cloudflare Dashboard](https://dash.cloudflare.com)
-2. Workers & Pages → Pages → **连接到 Git**
-3. 授权并选择你 Fork 的仓库
-4. 构建设置：
-
-| 设置 | 值 |
-|------|-----|
-| 框架预设 | **None** |
-| 构建命令 | 留空 |
-| 输出目录 | 留空 |
-
-5. 点击 **保存并部署** — 首次部署约 1-2 分钟
-
-以后每次 `git push`，Cloudflare 自动构建部署。
-
----
-
-### 方式 B：直接部署（无需 GitHub）
-
-#### 1. 克隆仓库
-
-```bash
-git clone https://github.com/你的用户名/leontv.git
-cd leontv
-```
-
-#### 2. 安装 Wrangler
+当前线上部署方案，全球 330+ 节点 CDN。
 
 ```bash
 npm install -g wrangler
-
-# 登录 Cloudflare 账号
 wrangler login
+wrangler pages deploy . --project-name=leontv
 ```
 
-#### 3. 创建 Pages 项目
+**环境变量**（Dashboard → Settings → Environment variables）：
 
-```bash
-wrangler pages project create leontv
-```
+| 变量 | 说明 | 必填 |
+|------|------|:--:|
+| `LOGIN_PASSWORD` | 页面访问密码 | ✅ |
+| `TMDB_API_KEY` | TMDB API Key（海报/评分） | 可选 |
 
-#### 4. 部署
-
-```bash
-# 同步文件
-cp public/index.html index.html
-
-# 部署到 Cloudflare Pages
-wrangler pages deploy . --project-name=leontv --commit-dirty=true
-
-# 或使用 npm 脚本
-npm run deploy
-```
-
-以后每次修改代码后，重复步骤 4 即可。
+**关键文件**：
+- `index.html` — 完整前端
+- `functions/api/[[path]].js` — Cloudflare Functions 搜索 API
+- `_routes.json` — API 路由规则
 
 ---
 
-### 3. 导入站点配置
+## ▲ Vercel
 
-部署完成后打开你的 Pages 域名（`https://xxx.pages.dev`）：
+关联 GitHub 仓库，推送代码自动部署。
 
-1. 页面提示输入密码，输入你设置的密码
-2. 点击右上角 ⚡ → 输入站点 JSON 地址或粘贴配置
-3. 支持格式：JSON 数组、域名 Key 对象、YAML、纯 URL 列表
+**关键文件**：
+- `index.html` — 前端
+- `api/search.js` — 搜索 API
+- `api/sites.js` — 站点管理（GET + POST）
+- `api/fetch.js` — URL 代理获取
+- `vercel.json` — 路由 + CORS 配置
 
-站点配置 JSON 格式示例：
-```json
-[{"name":"示例站点","api":"https://example.com/api.php/provide/vod"}]
-```
-
-或包含更多字段：
-```json
-{"example.com":{"name":"示例资源","api":"https://example.com/api.php/provide/vod"}}
-```
-
-> 导入支持 JSON 数组、域名 Key 对象、YAML、纯 URL 列表等多种格式
-
-### 4. （可选）部署 TMDB Worker
-
-分类浏览和海报功能需要 TMDB API。部署 `tmdb-worker.js`：
-
-```bash
-# 1. 获取 TMDB API Key
-#    https://www.themoviedb.org/settings/api （免费注册）
-
-# 2. 部署 Worker
-wrangler deploy tmdb-worker.js
-
-# 3. 配置环境变量
-#    Cloudflare Dashboard → Workers → tmdb → Settings → Variables
-#    TMDB_API_KEY = 你的Key
-#    PASSWORD     = 你的访问密码（必填，需与前端 pwd 参数一致）
-
-# 4. 修改 index.html 中的 TMDB 地址指向你的 Worker
-#    搜索 var TMDB = 'https://your-tmdb-worker.workers.dev' 并替换
-```
-
-如果暂时不配 TMDB，搜索和播放功能不受影响，只是没有评分和分类浏览。
-
-## 本地开发
-
-### Node.js
-
-```bash
-npm install
-npm start
-# → http://localhost:3000
-```
-
-### Docker
-
-```bash
-docker build -t leontv .
-docker run -p 3000:3000 leontv
-# → http://localhost:3000
-```
-
-> 注意：本地开发修改 `public/index.html`，部署前执行 `cp public/index.html index.html`
-
-## 自定义域名
-
-Cloudflare Dashboard → Pages → 你的项目 → **自定义域** → 添加你的域名
-
-## 项目结构
-
-```
-├── index.html                 # 前端主文件（部署入口）
-├── functions/
-│   └── api/
-│       └── [[path]].js        # 搜索 API
-├── server.js                  # 本地开发服务器
-├── tmdb-worker.js             # TMDB API 代理（可选）
-├── package.json
-├── wrangler.toml
-├── LICENSE
-└── README.md
-```
-
-## 技术栈
-
-- 前端: Vanilla JS, ReadableStream, HLS.js
-- 后端: Cloudflare Functions / Node.js + Express
-- 数据: JSON 配置文件（用户自行导入） + TMDB
-
-## 安全说明
-
-> ⚠️ 部署前请配置访问密码
-
-### 项目只需一个环境变量
-
-在 Cloudflare Dashboard → Pages → Settings → Environment variables：
-
-| 变量 | 值 |
-|------|-----|
-| `LOGIN_PASSWORD` | 你的密码 |
-
-即可完成 API 接口认证，无需修改任何代码文件。
-
-### TMDB Worker 独立配置
-
-`tmdb-worker.js` 单独部署，有自己的环境变量：
+**环境变量**（Dashboard → Settings → Environment Variables）：
 
 | 变量 | 说明 |
 |------|------|
-| `TMDB_API_KEY` | TMDB API 密钥 |
-| `PASSWORD` | 访问密码（与前端口令一致） |
+| `LOGIN_PASSWORD` | 访问密码 |
+| `TMDB_API_KEY` | TMDB API Key（可选） |
 
-## 常见问题
+---
 
-**Q: 搜索没结果？**
-A: 检查是否已导入站点配置（右上角 ⚡），确认站点 JSON 包含可用的 `api` 字段。
+## 🔷 Netlify
 
-**Q: 分类页空白？**
-A: 需要部署 TMDB Worker 并配置 API Key。
+关联 GitHub 仓库，推送代码自动部署。
 
-**Q: 如何修改默认密码？**
-A: 在 Cloudflare Dashboard 设置 `LOGIN_PASSWORD` 环境变量，无需修改代码。
+**关键文件**：
+- `index.html` — 前端
+- `netlify/functions/api.js` — 统一 API 入口
+- `netlify.toml` — 路由 + CORS + 构建配置
 
-**Q: 如何增加/修改站点？**
-A: 准备新的站点 JSON，通过设置面板 URL 或粘贴导入，自动保存到浏览器。
+**环境变量**（Dashboard → Site settings → Environment variables）：
 
-## 免责声明
+| 变量 | 说明 |
+|------|------|
+| `LOGIN_PASSWORD` | 访问密码 |
+| `TMDB_API_KEY` | TMDB API Key（可选） |
 
-> ⚠️ **请先阅读 [DISCLAIMER.md](DISCLAIMER.md)（完整中英双语免责声明）**
+---
 
-本项目为 MIT 协议开源的技术学习项目：
-- **不存储**任何影视资源文件
-- **不提供**下载、破解、付费内容绕过功能  
-- 所有内容来自使用者自行导入的**第三方 API 接口**
-- 开发者**不承担**任何使用者行为导致的法律责任
-- 请遵守当地法律法规，**24小时内删除**相关数据
+## 📦 项目结构
 
-## License
+```
+LeonTV/
+├── index.html                       # 完整前端 (HTML+CSS+JS)
+├── _core.js                         # 搜索核心逻辑（平台无关）
+│
+├── ☁️ Cloudflare
+│   ├── functions/api/[[path]].js    # CF Functions 入口
+│   └── _routes.json                 # CF 路由规则
+│
+├── ▲ Vercel
+│   ├── api/search.js                # 搜索 API
+│   ├── api/sites.js                 # 站点管理 API
+│   ├── api/fetch.js                 # URL 代理
+│   └── vercel.json                  # Vercel 配置
+│
+├── 🔷 Netlify
+│   ├── netlify/functions/api.js     # 统一 API 入口
+│   └── netlify.toml                 # Netlify 配置
+│
+├── public/index.html                # 本地开发副本
+├── server.js                        # Node.js 本地开发服务器
+├── package.json                     # 本地开发依赖
+├── tmdb-worker.js                   # TMDB 代理 Worker（独立部署）
+├── Dockerfile                       # Docker 部署
+└── .gitignore
+```
+
+---
+
+## 💻 本地开发
+
+```bash
+npm install
+npm start                           # → http://localhost:3000
+```
+
+修改 `public/index.html` → 测试 → 同步到 `index.html`
+
+---
+
+## 📡 API 端点
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/search` | GET/POST | NDJSON 流式搜索 |
+| `/api/sites` | GET | 获取站点列表 |
+| `/api/sites/load` | POST | 加载站点配置 |
+| `/api/fetch` | GET | 代理获取 JSON |
+| `/api/detail` | GET | 获取影片详情 |
+| `/api/tmdb/*` | GET | TMDB 代理 |
+
+> 所有平台 API 路径一致，前端代码无需修改。
+
+---
+
+## 🔧 自定义
+
+### 密码设置
+
+Cloudflare：Dashboard 设置 `LOGIN_PASSWORD` 环境变量
+Vercel/Netlify：同上，设置环境变量
+本地开发：`server.js` 不启用认证
+
+### 站点 JSON 格式
+
+页面右上角 ⚡ → 粘贴 JSON URL → 加载。支持多种格式：
+
+```json
+[{"name":"站点名", "api":"https://..."}]
+{"sites":[{"name":"站点名", "api":"https://..."}]}
+{"api_site":{"domain":{"name":"站点名","api":"https://..."}}}
+```
+
+---
+
+## 📄 License
 
 MIT — 详见 [LICENSE](LICENSE)
-

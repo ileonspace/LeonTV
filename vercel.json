@@ -1,0 +1,26 @@
+{
+  "functions": {
+    "api/*.js": {
+      "memory": 128,
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    { "source": "/api/search", "destination": "/api/search" },
+    { "source": "/api/sites", "destination": "/api/sites" },
+    { "source": "/api/sites/load", "destination": "/api/sites" },
+    { "source": "/api/fetch", "destination": "/api/fetch" },
+    { "source": "/api/detail", "destination": "/api/detail" },
+    { "source": "/api/tmdb/(.*)", "destination": "/api/tmdb/$1" }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+      ]
+    }
+  ]
+}
