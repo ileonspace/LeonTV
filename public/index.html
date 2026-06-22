@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LeonTV v4.5 — 2026-06-21 移动端优化版 -->
+<!-- LeonTV v4.6 — 2026-06-23 分类缓存+进度同步 -->
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -266,8 +266,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
     </div>
   </div>
   <div class="lock-banner" id="lockBanner">
-    <p style="font-size:48px;margin-bottom:12px;color:#FF8C00;"><i data-lucide="lock"></i></p>
-    <p style="font-size:16px;font-weight:600;margin-bottom:6px;color:#FF8C00;">请先加载站点配置</p>
+    <p style="font-size:48px;margin-bottom:12px;color:var(--text3);"><i data-lucide="lock"></i></p>
+    <p style="font-size:16px;font-weight:600;margin-bottom:6px;">请先加载站点配置</p>
     <p style="font-size:13px;color:var(--text3);">点击右上角 <i data-lucide="bolt" style="width:1em;height:1em;vertical-align:-.15em;"></i> 导入站点JSON，激活全部功能</p>
   </div>
   <div class="status-bar" id="statusBar" style="display:none"></div>
@@ -285,12 +285,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 <footer class="site-footer">
   <p>数据来源于第三方API，不存储任何影视资源，仅供技术学习</p>
   <p>内容来自互联网接口，版权归原权利人所有 · 如有侵权请联系删除</p>
-  <p style="opacity:.5;">LeonTV v4.5</p>
+  <p style="opacity:.5;">LeonTV v4.6</p>
 </footer>
 
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
-    <div class="modal-header"><h3><i data-lucide="settings"></i> 站点配置 <span style="font-size:11px;color:var(--text3);font-weight:400;">v4.4</span></h3><button class="modal-close" onclick="closeSettings()"><i data-lucide="x"></i></button></div>
+    <div class="modal-header"><h3><i data-lucide="settings"></i> 站点配置 <span style="font-size:11px;color:var(--text3);font-weight:400;">v4.6</span></h3><button class="modal-close" onclick="closeSettings()"><i data-lucide="x"></i></button></div>
     <div class="modal-body">
       <div class="modal-tabs">
         <button class="modal-tab active" id="tabUrl" onclick="switchTab('url')"><i data-lucide="link"></i> URL</button>
@@ -579,20 +579,23 @@ function doPlay(urls,title,idx){
   document.getElementById('playerTitle').innerHTML=title+srcInfo+(urls.length>1?' · 线路'+(idx+1)+'/'+urls.length:'');
   if(v._hls){v._hls.destroy();v._hls=null;}
   if(v._playTimer){clearTimeout(v._playTimer);v._playTimer=null;}
+  if(v._nextTimer){clearTimeout(v._nextTimer);v._nextTimer=null;}
   if(v._seekTimer){clearInterval(v._seekTimer);v._seekTimer=null;}
   v.onerror=null;v.oncanplay=null;v.ontimeupdate=null;
   var url=urls[idx].url,skipped=false;
-  function next(){if(skipped)return;skipped=true;if(v._playTimer){clearTimeout(v._playTimer);v._playTimer=null;}setTimeout(function(){doPlay(urls,title,idx+1);},400);}
+  function next(){if(skipped)return;skipped=true;if(v._playTimer){clearTimeout(v._playTimer);v._playTimer=null;}v._seekTo=v.currentTime;v._nextTimer=setTimeout(function(){doPlay(urls,title,idx+1);},400);}
   // 10秒超时：若视频未开始播放，自动跳下一源
   v._playTimer=setTimeout(function(){if(v.paused||v.currentTime<0.5)next();},10000);
   v.ontimeupdate=function(){if(v.currentTime>0.5&&v._playTimer){clearTimeout(v._playTimer);v._playTimer=null;}};
   if(url.indexOf('.m3u8')>=0){
     if(Hls.isSupported()){var h=new Hls({enableWorker:true,lowLatencyMode:false});h.loadSource(url);h.attachMedia(v);v._hls=h;
       h.on(Hls.Events.ERROR,function(e,d){if(d.fatal||d.type===Hls.ErrorTypes.NETWORK_ERROR)next();});
-      h.on(Hls.Events.MANIFEST_PARSED,function(){if(v._playTimer){clearTimeout(v._playTimer);v._playTimer=null;}});
+      h.on(Hls.Events.MANIFEST_PARSED,function(){if(v._playTimer){clearTimeout(v._playTimer);v._playTimer=null;}if(v._seekTo>0){v.currentTime=v._seekTo;v._seekTo=0;}});
     }else if(v.canPlayType('application/vnd.apple.mpegurl')){v.src=url;}
     else{next();return;}
   }else{v.src=url;}
+  // 非HLS.js源：loadedmetadata后同步进度
+  if(!v._hls&&v._seekTo>0){var st=v._seekTo;v._seekTo=0;v.addEventListener('loadedmetadata',function seek(){v.currentTime=st;v.removeEventListener('loadedmetadata',seek);});}
   v.onerror=next;v.play().catch(next);
 }
 function castVideo(){
@@ -618,10 +621,12 @@ function closePlayer(){
     updateWatchTime(currentWatch.vodName,currentWatch.epLabel,currentWatch.epNum,Math.floor(v.currentTime));
   }
   if(v._playTimer){clearTimeout(v._playTimer);v._playTimer=null;}
+  if(v._nextTimer){clearTimeout(v._nextTimer);v._nextTimer=null;}
   if(watchTimer){clearInterval(watchTimer);watchTimer=null;}
   currentWatch=null;
   if(v._hls){v._hls.destroy();v._hls=null;}
-  v.pause();v.src='';v.onerror=null;document.getElementById('playerOverlay').classList.remove('open');
+  v.pause();v.src='';v.onerror=null;v._seekTo=0;
+  document.getElementById('playerOverlay').classList.remove('open');
 }
 
 // ========== UTILS ==========
@@ -685,7 +690,9 @@ function merge(srcs){
       var m=src.results[mi],k=norm(m.vod_name);if(!k) continue;
       if(map.has(k)){
         var ex=map.get(k);
-        ex.sources.push({site:src.site,key:src.key,responseTime:src.responseTime||0,play_urls:m.play_urls||[],error:src.error||null});
+        // 去重：同一站点key只保留一次
+        var dup=false;for(var di=0;di<ex.sources.length;di++){if(ex.sources[di].key===src.key){dup=true;break;}}
+        if(!dup) ex.sources.push({site:src.site,key:src.key,responseTime:src.responseTime||0,play_urls:m.play_urls||[],error:src.error||null});
         ex.vod_year=ex.vod_year||m.vod_year;ex.vod_pic=ex.vod_pic||m.vod_pic;ex.vod_area=ex.vod_area||m.vod_area;
         ex.type_name=ex.type_name||m.type_name;ex.vod_actor=ex.vod_actor||m.vod_actor;ex.vod_director=ex.vod_director||m.vod_director;
         ex.vod_content=ex.vod_content||m.vod_content;
@@ -734,7 +741,7 @@ function renderHistory(){
   if(watchH.length>0){
     for(var i=0;i<watchH.length;i++){
       var w=watchH[i];
-      html+='<span class="history-pill" style="border-color:var(--accent);background:var(--ep-bg)" onclick="pickWatchHistory('+i+')">'+esc(w.vod_name)+' '+esc(w.epLabel)+'&nbsp;&nbsp;<b style="color:var(--accent)">'+esc(w.timeDisplay)+'</b><button class="hx" onclick="delOneWatchHistory('+i+',event)">×</button></span>';
+      html+='<span class="history-pill" onclick="pickWatchHistory('+i+')">'+esc(w.vod_name)+' <b style="color:#FF8C00">'+esc(w.epLabel)+'</b>&nbsp;&nbsp;<b style="color:var(--accent)">'+esc(w.timeDisplay)+'</b><button class="hx" onclick="delOneWatchHistory('+i+',event)">×</button></span>';
     }
   }
   // 搜索记录区（另起一行，明确分隔）
@@ -927,6 +934,9 @@ function playEp(urlsJson,title,mi,btn){
       updateWatchTime(currentWatch.vodName,currentWatch.epLabel,currentWatch.epNum,Math.floor(v.currentTime));
     }
   },5000);
+  // 手动换线路：同步当前播放进度
+  var pv=document.getElementById('videoPlayer');
+  if(document.getElementById('playerOverlay').classList.contains('open')&&pv&&pv.currentTime>1) pv._seekTo=pv.currentTime;
   doPlay(urls,title);
 }
 
@@ -959,9 +969,36 @@ var CAT_PARAMS={
   lotr:{type:'movie',sort:'primary_release_date.desc',search:'lord of the rings'}
 };
 var catPage={},activeCat=null,catTimer=null,catLoading=false,catCache={};
+var CAT_CACHE_TTL=12*60*60*1000;
+function stripItem(o){return{title:o.title||o.name||'',poster_path:o.poster_path||'',vote_average:o.vote_average,release_date:o.release_date||'',first_air_date:o.first_air_date||''};}
+function saveCatCache(cat,region,allItems,lastPage){
+  var key=cat+'_'+region+'_v2';
+  allItems=allItems.map(stripItem);
+  catCache[key]={allItems:allItems,lastPage:lastPage,time:Date.now()};
+  var o={};
+  try{
+    var raw=localStorage.getItem('ms-cat-cache');if(raw) o=JSON.parse(raw);
+  }catch(e){}
+  o[key]={allItems:allItems,lastPage:lastPage,time:Date.now()};
+  try{localStorage.setItem('ms-cat-cache',JSON.stringify(o));}catch(e){}
+}
+function getCached(cat,region){
+  var key=cat+'_'+region+'_v2';
+  if(catCache[key]) return catCache[key];
+  try{
+    var raw=localStorage.getItem('ms-cat-cache');if(!raw)return null;
+    var o=JSON.parse(raw),entry=o[key];
+    if(entry&&Date.now()-entry.time<CAT_CACHE_TTL){
+      // 兼容旧格式 {items,page} → 转为新格式 {allItems,lastPage}
+      if(!entry.allItems&&entry.items){entry.allItems=entry.items;entry.lastPage=entry.page||1;}
+      catCache[key]=entry;return entry;
+    }
+  }catch(e){}
+  return null;
+}
 var SERIES_CATS={marvel:1,dc:1,starwars:1,harrypotter:1,jurassic:1,bond:1,lotr:1};
 var TMDB='https://tmdb.yun.bar';
-function tmdbFetch(path,timeout){var sep=path.indexOf('?')>=0?'&':'?';var url=TMDB+path+sep+'pwd='+(localStorage.getItem('ms-login-pwd')||'');if(!timeout)return fetch(url);var ctrl=new AbortController();var timer=setTimeout(function(){ctrl.abort();},timeout);return fetch(url,{signal:ctrl.signal}).finally(function(){clearTimeout(timer);});}
+function tmdbFetch(path,timeout,extSignal){var sep=path.indexOf('?')>=0?'&':'?';var url=TMDB+path+sep+'pwd='+(localStorage.getItem('ms-login-pwd')||'');var ctrl=new AbortController();var timer=setTimeout(function(){ctrl.abort();},timeout);var signal=extSignal||ctrl.signal;return fetch(url,{signal:signal}).finally(function(){clearTimeout(timer);});}
 
 async function loadCategory(cat,pill,forceReload){
   abortAll();catAbort=new AbortController();var sig=catAbort.signal;
@@ -974,17 +1011,26 @@ async function loadCategory(cat,pill,forceReload){
   catLoading=true;clearTimeout(catTimer);
   document.getElementById('emptyBox').style.display='none';
   var page=(catPage[cat]||0)+1;catPage[cat]=page;
-  // 第一页有缓存直接显示
-  if(page===1&&catCache[cat+'_'+region+'_v2']){
-    var cached=catCache[cat+'_'+region+'_v2'];
-    document.getElementById('loadingBox').style.display='none';
-    document.getElementById('statusBar').style.display='flex';
-    document.getElementById('statusBar').innerHTML='<span class="status-dot ok"></span> '+pill.textContent.trim()+' · 第1页（缓存）';
-    renderCatGrid(cached,cat,false);
-    catLoading=false;catTimer=setTimeout(function(){document.getElementById('statusBar').style.display='none';},2000);
-    return;
+  // 检查缓存：首页只显示前20条（界面一致），更多优先从缓存切片
+  var cached=getCached(cat,region);
+  if(cached&&cached.allItems&&cached.allItems.length>0){
+    var PER_PAGE=20,start=(page-1)*PER_PAGE,end=start+PER_PAGE;
+    if(cached.allItems.length>=start){
+      var pageItems=cached.allItems.slice(start,Math.min(end,cached.allItems.length));
+      if(pageItems.length>0){
+        document.getElementById('loadingBox').style.display='none';
+        document.getElementById('statusBar').style.display='none';
+        renderCatGrid(pageItems,cat,isMore);
+        catLoading=false;
+        return;
+      }
+    }
+    // 缓存不够当前页，继续网络加载（不return）
   }
-  document.getElementById('loadingBox').style.display='block';
+  // 查看更多不显示loading遮罩，避免页面跳动
+  if(!isMore){
+    document.getElementById('loadingBox').style.display='block';
+  }
   document.getElementById('statusBar').style.display='flex';
   document.getElementById('statusBar').innerHTML='<span class="status-dot"></span> 加载中...';
   var t0=Date.now();
@@ -993,7 +1039,7 @@ async function loadCategory(cat,pill,forceReload){
     // 自定义分类：搜TMDB关键词ID，用关键词筛选系列作品；搜不到则搜影片名
     // Collection系列（007等，精确）
     if(cfg.collection){
-      var res=await tmdbFetch('/collection/'+cfg.collection+'?language=zh-CN',10000);
+      var res=await tmdbFetch('/collection/'+cfg.collection+'?language=zh-CN',10000,sig);
       var colData=await res.json();
       var items=(colData.parts||[]).filter(function(r){return(r.release_date||'')<=TODAY;});
       items.sort(function(a,b){return (b.release_date||'')>(a.release_date||'')?1:-1;});
@@ -1001,12 +1047,12 @@ async function loadCategory(cat,pill,forceReload){
       var elapsed=Date.now()-t0;
       document.getElementById('statusBar').innerHTML='<span class="status-dot ok"></span> '+pill.textContent.trim()+' · '+items.length+'部 · '+elapsed+'ms';
       catTimer=setTimeout(function(){document.getElementById('statusBar').style.display='none';},3000);
-      if(page===1&&items.length>0) catCache[cat+'_'+region+'_v2']={items:items,page:1};
+      if(page===1&&items.length>0){saveCatCache(cat,region,items,Math.ceil(items.length/20));}
       catLoading=false;
       if(items.length===0){
         document.getElementById('loadingBox').style.display='none';
         document.getElementById('emptyBox').style.display='block';
-        document.getElementById('emptyBox').innerHTML='<p style="font-size:40px;color:var(--text3);"><i data-lucide=\"search-x\"></i></p><p>该分类暂无结果</p>';
+        document.getElementById('emptyBox').innerHTML='<p style="font-size:40px;color:var(--text3);"><i data-lucide=\"search-x\"></i></p><p>请重新点击分类</p>';
         lucide.createIcons();
         return;
       }
@@ -1025,13 +1071,13 @@ async function loadCategory(cat,pill,forceReload){
       var sExtra='sort_by='+cfg.sort;
       if(region&&!SERIES_CATS[cat]) sExtra+='&with_origin_country='+region;
       if(cfg.type==='movie') sExtra+='&primary_release_date.lte='+TODAY;
-      var res=await tmdbFetch('/search/movie?query='+encodeURIComponent(cfg.search)+'&language=zh-CN&'+sExtra+'&page='+page,10000);
+      var res=await tmdbFetch('/search/movie?query='+encodeURIComponent(cfg.search)+'&language=zh-CN&'+sExtra+'&page='+page,10000,sig);
       var data=await res.json();
       // 客户端排序+过滤未来
       if(data.results){data.results=data.results.filter(function(r){return (r.release_date||'')<=TODAY;});data.results.sort(function(a,b){return (b.release_date||'')>(a.release_date||'')?1:-1;});}
     }else if(cfg.keyword){
       var data;
-      var kwRes=await tmdbFetch('/search/keyword?query='+encodeURIComponent(cfg.keyword),10000);
+      var kwRes=await tmdbFetch('/search/keyword?query='+encodeURIComponent(cfg.keyword),10000,sig);
       var kwData=await kwRes.json();
       if(kwData.results&&kwData.results.length>0){
         var kwExtra='sort_by='+cfg.sort+'&with_keywords='+kwData.results[0].id;
@@ -1039,44 +1085,56 @@ async function loadCategory(cat,pill,forceReload){
         if(region&&!SERIES_CATS[cat]) kwExtra+='&with_origin_country='+region;
         if(cfg.type==='movie') kwExtra+='&primary_release_date.lte='+TODAY;
         else if(cfg.type==='tv') kwExtra+='&first_air_date.lte='+TODAY;
-        var res=await tmdbFetch('/discover/movie?language=zh-CN&'+kwExtra+'&page='+page,10000);
+        var res=await tmdbFetch('/discover/movie?language=zh-CN&'+kwExtra+'&page='+page,10000,sig);
         data=await res.json();
       }else{
         var sExtra='sort_by='+cfg.sort;
         if(region&&!SERIES_CATS[cat]) sExtra+='&with_origin_country='+region;
         if(cfg.type==='movie') sExtra+='&primary_release_date.lte='+TODAY;
-        var res=await tmdbFetch('/search/movie?query='+encodeURIComponent(cfg.keyword)+'&language=zh-CN&'+sExtra+'&page='+page,10000);
+        var res=await tmdbFetch('/search/movie?query='+encodeURIComponent(cfg.keyword)+'&language=zh-CN&'+sExtra+'&page='+page,10000,sig);
         data=await res.json();
       }
     }else{
       var extra='sort_by='+cfg.sort;if(cfg.extra) extra+='&'+cfg.extra;
       if(region&&!SERIES_CATS[cat]) extra+='&with_origin_country='+region;
       var url='/discover/'+cfg.type+'?language=zh-CN&'+extra+'&page='+page;
-      var res=await tmdbFetch(url,10000);var data=await res.json();
+      var res=await tmdbFetch(url,10000,sig);var data=await res.json();
     }
     var items=data.results||[];
-    document.getElementById('loadingBox').style.display='none';
+    if(!isMore) document.getElementById('loadingBox').style.display='none';
     var elapsed=Date.now()-t0;
     var regionText=region?' · '+document.getElementById('regionSelect').selectedOptions[0]?.textContent:'';
     document.getElementById('statusBar').innerHTML='<span class="status-dot ok"></span> '+pill.textContent.trim()+regionText+' · 第'+page+'页 · '+elapsed+'ms';
     catTimer=setTimeout(function(){document.getElementById('statusBar').style.display='none';},3000);
     // 缓存第一页结果
-    if(page===1&&items.length>0) catCache[cat+'_'+region+'_v2']={items:items,page:page};
+    // 追加到缓存（新条目合并去重)
+    if(items.length>0){
+      var ck=cat+'_'+region+'_v2',exist=catCache[ck];
+      var all=exist&&exist.allItems?exist.allItems.concat(items):items;
+      saveCatCache(cat,region,all,page);
+    }
     catLoading=false;
     if(items.length===0){
       document.getElementById('loadingBox').style.display='none';
       document.getElementById('emptyBox').style.display='block';
-      document.getElementById('emptyBox').innerHTML='<p style="font-size:40px;color:var(--text3);"><i data-lucide=\"search-x\"></i></p><p>该分类暂无结果</p>';
+      document.getElementById('emptyBox').innerHTML='<p style="font-size:40px;color:var(--text3);"><i data-lucide=\"search-x\"></i></p><p>请重新点击分类</p>';
       lucide.createIcons();
       catTimer=setTimeout(function(){document.getElementById('statusBar').style.display='none';},3000);
       return;
     }
     renderCatGrid(items,cat,isMore);
   }catch(e){
+    if(catPage[cat]&&catPage[cat]>0) catPage[cat]--;
     if(e.name==='AbortError'){catLoading=false;return;}
     document.getElementById('loadingBox').style.display='none';
-    document.getElementById('statusBar').innerHTML='<span class="status-dot err"></span> 加载失败: '+e.message;
+    document.getElementById('statusBar').innerHTML='<span class="status-dot err"></span> 请重新点击分类';
+    catTimer=setTimeout(function(){document.getElementById('statusBar').style.display='none';},4000);
     catLoading=false;
+    if(!document.getElementById('resultsArea').innerHTML.trim()||document.getElementById('resultsArea').innerHTML===''){
+      document.getElementById('emptyBox').style.display='block';
+      document.getElementById('emptyBox').innerHTML='<p style="font-size:40px;color:var(--text3);"><i data-lucide=\"rotate-cw\"></i></p><p>请重新点击分类</p>';
+      lucide.createIcons();
+    }
   }
 }
 
