@@ -11,6 +11,20 @@
 
 ---
 
+## 🛠 技术栈
+
+| 层级 | 技术 |
+|------|------|
+| 前端 | Vanilla JS · HTML5 · CSS3 · HLS.js · Lucide Icons |
+| 搜索 | NDJSON 流式推送 · ReadableStream · AbortController |
+| 后端 | Cloudflare Functions / Vercel Serverless / Netlify Functions |
+| 本地开发 | Node.js + Express |
+| 数据源 | 27个 CMS API 站点 · TMDB API (可选) |
+| 存储 | localStorage (站点配置/搜索历史/观影记录) |
+| 部署 | Wrangler CLI · GitHub Actions · Docker |
+
+---
+
 ## 🚀 一键部署
 
 | 平台 | 按钮 | 费用 |
