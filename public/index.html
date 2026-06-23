@@ -136,11 +136,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 .player-overlay.cinema .player-info{background:#1a1a1a;color:#ccc;border-top-color:#333}
 .modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .modal-overlay.open{display:flex}
-.modal{background:var(--card);border-radius:16px;width:90%;max-width:500px;box-shadow:0 8px 32px rgba(0,0,0,.2);overflow:hidden}
-.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border)}
+.modal{background:var(--card);border-radius:16px;width:90%;max-width:500px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.2);overflow:hidden}
+.modal-header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border)}
 .modal-header h3{font-size:16px;font-weight:600}
 .modal-close{width:28px;height:28px;border-radius:50%;border:none;background:var(--bg);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--text2)}
-.modal-body{padding:16px 18px 20px}
+.modal-body{flex:1;overflow-y:auto;padding:16px 18px 20px}
 .modal-tabs{display:flex;margin-bottom:16px;border-radius:8px;overflow:hidden;border:1px solid var(--border)}
 .modal-tab{flex:1;padding:10px 0;text-align:center;font-size:13px;font-weight:500;cursor:pointer;background:var(--bg);color:var(--text2);border:none;display:flex;align-items:center;justify-content:center;gap:4px}
 .modal-tab.active{background:var(--accent);color:#fff}
@@ -156,19 +156,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 .modal .msg.err{display:block;background:rgba(255,59,48,.1);color:var(--red)}
 .modal .msg.loading{display:flex;align-items:center;gap:8px;background:rgba(0,102,204,.08);color:var(--accent);font-weight:500}
 /* 版本信息 */
-.version-info{margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--bg);border:1px solid var(--border)}
+.version-info{margin-top:14px;padding:10px 14px;border-radius:12px;background:var(--ep-bg);border:1px solid var(--border);cursor:pointer;user-select:none}
+.version-info:hover{border-color:var(--accent)}
 .version-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .version-badge{display:inline-block;padding:4px 14px;border-radius:14px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;letter-spacing:.5px}
 .version-status{font-size:11px;color:var(--green);font-weight:500}
-.version-link{display:inline-flex;align-items:center;gap:4px;margin-top:10px;font-size:12px;color:var(--accent);text-decoration:none;font-weight:500}
+.version-arrow{font-size:10px;color:var(--text3);margin-left:auto;transition:transform .2s}
+.version-link{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--accent);text-decoration:none;font-weight:500}
 .version-link:hover{text-decoration:underline}
-.version-toggle{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);user-select:none}
-.version-toggle:hover{color:var(--accent)}
-.cl-list{margin-top:8px;font-size:11px;color:var(--text2);max-height:260px;overflow-y:auto}
-.cl-item{margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.cl-list{margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text2)}
+.cl-item{margin-bottom:7px;padding-bottom:7px;border-bottom:1px solid var(--border)}
 .cl-item:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
-.cl-item-head{font-weight:600;color:var(--text);margin-bottom:3px}
-.cl-item-body{font-size:11px;color:var(--text3);line-height:1.6}
+.cl-item-head{font-weight:600;color:var(--text);margin-bottom:3px;font-size:12px}
+.cl-item-body{font-size:11px;color:var(--text2);line-height:1.6}
 .import-spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
 .site-footer{text-align:center;padding:40px 20px 30px;color:var(--text3);font-size:11px;line-height:1.8;max-width:900px;margin:0 auto;opacity:.7}
 .results-header{font-size:13px;color:var(--text2);margin-bottom:12px;text-align:center}
@@ -327,16 +327,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
         </div>
         <div id="siteList" style="display:none;max-height:180px;overflow-y:auto;margin-top:8px;font-size:13px;color:var(--text);line-height:2;padding:4px 0;border-top:1px solid var(--border);"></div>
       </div>
-      <div class="version-info" id="versionInfo">
+      <div class="version-info" id="versionInfo" onclick="toggleVersionLog()">
         <div class="version-row">
           <span class="version-badge" id="verBadge">v4.6.1</span>
           <span class="version-status" id="verStatus">✓ 当前为最新版本</span>
+          <span class="version-arrow" id="verArrow">▶</span>
         </div>
-        <a class="version-link" href="https://github.com/ileonspace/LeonTV" target="_blank">📦 前往仓库</a>
-        <div class="version-toggle" onclick="toggleVersionLog()">
-          <span>📋 变更日志</span>
-          <span id="verArrow" style="font-size:10px;">▶</span>
-        </div>
+        <a class="version-link" href="https://github.com/ileonspace/LeonTV" target="_blank" onclick="event.stopPropagation()">📦 前往仓库</a>
         <div class="cl-list" id="clList" style="display:none"></div>
       </div>
       <div style="text-align:center;margin-top:10px;">
@@ -1314,6 +1311,8 @@ function toggleVersionLog(){
   document.getElementById('clList').style.display=verOpen?'block':'none';
   document.getElementById('verArrow').textContent=verOpen?'▼':'▶';
   if(verOpen) renderVersionLog();
+  // 展开后滚动到底部
+  if(verOpen) setTimeout(function(){document.getElementById('clList').scrollIntoView({behavior:'smooth',block:'nearest'});},100);
 }
 document.getElementById('verBadge').textContent='v'+VER;
 
