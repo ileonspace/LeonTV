@@ -709,7 +709,11 @@ var MAX_HISTORY=15;
 function getHistory(){try{return JSON.parse(localStorage.getItem('ms-history')||'[]');}catch(e){return[];}}
 function saveHistory(arr){localStorage.setItem('ms-history',JSON.stringify(arr.slice(0,MAX_HISTORY)));}
 function addHistory(kw){
-  var h=getHistory();h=h.filter(function(x){return x!==kw;});h.unshift(kw);saveHistory(h);
+  var h=getHistory();
+  // 同剧名去重：去掉末尾数字后匹配，后来的覆盖前面的
+  var base=kw.replace(/\d+$/,'');
+  h=h.filter(function(x){return x!==kw&&x.replace(/\d+$/,'')!==base;});
+  h.unshift(kw);saveHistory(h);
 }
 function delOneHistory(kw,ev){ev.stopPropagation();var h=getHistory().filter(function(x){return x!==kw;});saveHistory(h);renderHistory();}
 function clearHistory(){saveHistory([]);renderHistory();}
