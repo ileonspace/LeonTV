@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LeonTV v4.7.1 — 2026-06-23 滑动切换分类 + 版本面板 -->
+<!-- LeonTV v4.61 — 2026-06-23 分类缓存+进度同步 -->
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -41,7 +41,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 .cat-nav::-webkit-scrollbar{display:none}
 .region-select{padding:5px 10px;border-radius:14px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;cursor:pointer;outline:none;flex-shrink:0}
 .region-select.active{background:var(--ep-bg);font-weight:700}
-#activePillSlot{display:contents}
 .cat-pill{flex-shrink:0;padding:5px 12px;border-radius:14px;border:1px solid var(--border);background:var(--card);color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s;line-height:1.4}
 .cat-pill:hover{border-color:var(--accent);color:var(--accent)}
 .cat-pill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -66,11 +65,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 .cat-card-rating{font-weight:700;color:#E6A000}
 .cat-more{grid-column:1/-1;display:flex;align-items:center;justify-content:center;min-height:60px;color:var(--text3);font-size:13px;cursor:pointer;border-radius:10px;border:2px dashed var(--border);transition:all .2s}
 .cat-more:hover{border-color:var(--accent);color:var(--accent)}
-/* 分类滑动切换 */
-.results-area.swiping{transition:none!important}
-.results-area.snap-back{transition:transform .25s ease-out!important;transform:translateX(0)}
-.results-area.snap-next{transition:transform .25s ease-out!important}
-.swipe-indicator{position:fixed;top:50%;transform:translateY(-50%);z-index:150;font-size:28px;color:var(--accent);opacity:0;pointer-events:none;transition:opacity .15s}
 .movie-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
 .movie-top{display:flex;gap:12px;margin-bottom:10px}
 .poster-wrap{position:relative;flex-shrink:0;width:160px;height:224px}
@@ -269,7 +263,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
       <option value="FR|DE|IT|ES|GB">欧洲</option>
       <option value="TH|IN|ID|VN|PH">其他</option>
     </select>
-    <span id="activePillSlot"></span>
     <div class="cat-nav" id="catNav">
       <button class="cat-pill" data-cat="trending_movie" draggable="true">热门电影</button>
       <button class="cat-pill" data-cat="trending_tv" draggable="true">正在播出</button>
@@ -310,16 +303,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 <footer class="site-footer">
   <p>数据来源于第三方API，不存储任何影视资源，仅供技术学习</p>
   <p>内容来自互联网接口，版权归原权利人所有 · 如有侵权请联系删除</p>
-  <p style="opacity:.5;">LeonTV v4.7.1</p>
+  <p style="opacity:.5;">LeonTV v4.61</p>
 </footer>
 
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
-    <div class="modal-header"><h3><i data-lucide="settings"></i> 站点配置 <span style="font-size:11px;color:var(--text3);font-weight:400;">v4.7.1</span></h3><button class="modal-close" onclick="closeSettings()"><i data-lucide="x"></i></button></div>
+    <div class="modal-header"><h3><i data-lucide="settings"></i> 站点配置 <span style="font-size:11px;color:var(--text3);font-weight:400;">v4.61</span></h3><button class="modal-close" onclick="closeSettings()"><i data-lucide="x"></i></button></div>
     <div class="modal-body">
       <div class="version-info" id="versionInfo" onclick="toggleVersionLog()">
         <div class="version-row">
-          <span class="version-badge" id="verBadge">v4.7.1</span>
+          <span class="version-badge" id="verBadge">v4.61</span>
           <span class="version-status" id="verStatus">最新</span>
           <a class="version-link" href="https://github.com/ileonspace/LeonTV" target="_blank" onclick="event.stopPropagation()">前往仓库</a>
           <span class="version-arrow" id="verArrow">▶</span>
@@ -1044,11 +1037,7 @@ async function loadCategory(cat,pill,forceReload){
   var isMore=pill.classList.contains('active')&&!forceReload;
   if(!isMore){
     document.querySelectorAll('#catNav .cat-pill').forEach(function(p){p.classList.remove('active');});
-    // 归位之前移到插槽的胶囊
-    var slot=document.getElementById('activePillSlot'),prev=slot.querySelector('.cat-pill');
-    if(prev) document.getElementById('catNav').appendChild(prev);
     pill.classList.add('active');activeCat=cat;catPage={};document.getElementById('resultsArea').innerHTML='';
-    slot.appendChild(pill);
   }
   catLoading=true;clearTimeout(catTimer);
   document.getElementById('emptyBox').style.display='none';
@@ -1214,10 +1203,7 @@ function resetHome(){
   document.getElementById('statusBar').style.display='none';
   document.querySelectorAll('#catNav .cat-pill').forEach(function(p){p.classList.remove('active');});
   var rs=document.getElementById('regionSelect');rs.value='CN';rs.classList.add('active');
-  activeCat=null;catPage={};movies=[];
-  var slot=document.getElementById('activePillSlot'),prev=slot.querySelector('.cat-pill');
-  if(prev) document.getElementById('catNav').appendChild(prev);
-  lucide.createIcons();
+  activeCat=null;catPage={};movies=[];lucide.createIcons();
 }
 
 // ========== TMDB ==========
@@ -1299,66 +1285,10 @@ document.getElementById('regionSelect').addEventListener('change',function(){
 });
 document.getElementById('catNav').addEventListener('wheel',function(e){if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){e.preventDefault();document.getElementById('catNav').scrollLeft+=e.deltaY;}},{passive:false});
 
-// ========== CAT SWIPE (移动端跟手滑动切换分类) ==========
-(function initSwipe(){
-  var startX=0,startY=0,dragging=false,area=document.getElementById('resultsArea'),pills=[],nav=document.getElementById('catNav');
-  var SWIPE_THRESHOLD=60,MAX_DRAG=120;
-  function getPills(){return Array.from(nav.querySelectorAll('.cat-pill[data-cat]'));}
-  function curIdx(){for(var i=0;i<pills.length;i++){if(pills[i].dataset.cat===activeCat) return i;}return -1;}
-  function restorePills(){pills.forEach(function(p){p.style.transform='';p.style.opacity='';});}
-
-  document.addEventListener('touchstart',function(e){
-    // 不拦截分类栏上的触摸（保留原生滚动）
-    if(e.target.closest('#catNav')||e.target.closest('.cat-bar')) return;
-    if(!activeCat||catLoading||e.touches.length!==1) return;
-    startX=e.touches[0].clientX;startY=e.touches[0].clientY;dragging=true;
-    pills=getPills();area.style.transition='none';
-    document.body.style.overflow='hidden'; // 锁定页面防止抖动
-  },{passive:true});
-
-  document.addEventListener('touchmove',function(e){
-    if(!dragging||catLoading) return;
-    var dx=e.touches[0].clientX-startX,dy=e.touches[0].clientY-startY;
-    if(Math.abs(dy)>Math.abs(dx)*1.3){dragging=false;area.style.transform='';restorePills();document.body.style.overflow='';return;}
-    e.preventDefault(); // 阻止浏览器手势(返回/刷新)
-    var clamped=Math.max(-MAX_DRAG,Math.min(MAX_DRAG,dx));
-    area.style.transform='translateX('+clamped+'px)';
-    var idx=curIdx();if(idx<0) return;
-    var targetIdx=dx<0?idx+1:idx-1;
-    if(targetIdx>=0&&targetIdx<pills.length){
-      var target=pills[targetIdx];
-      nav.scrollLeft=target.offsetLeft-nav.offsetWidth/2+target.offsetWidth/2;
-      pills.forEach(function(p,i){p.style.transform='';p.style.opacity='';});
-      target.style.transform='scale(1.05)';target.style.opacity='0.7';
-    }
-  },{passive:false});
-
-  document.addEventListener('touchend',function(e){
-    if(!dragging||catLoading){dragging=false;restorePills();document.body.style.overflow='';return;}
-    dragging=false;restorePills();document.body.style.overflow='';
-    var dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;
-    if(Math.abs(dx)<SWIPE_THRESHOLD||Math.abs(dy)>Math.abs(dx)*1.2){
-      area.style.transition='transform .25s ease-out';area.style.transform='translateX(0)';return;
-    }
-    var idx=curIdx();if(idx<0){area.style.transform='';return;}
-    var nextIdx=dx<0?idx+1:idx-1;
-    if(nextIdx<0||nextIdx>=pills.length){area.style.transition='transform .25s ease-out';area.style.transform='translateX(0)';return;}
-    // 飞出旧内容 + 加载新分类
-    var outX=dx<0?-area.offsetWidth:area.offsetWidth;
-    area.style.transition='transform .25s ease-out';
-    area.style.transform='translateX('+outX+'px)';
-    setTimeout(function(){
-      area.style.transition='none';area.style.transform='translateX(0)';
-      catPage={};loadCategory(pills[nextIdx].dataset.cat,pills[nextIdx]);
-    },250);
-  },{passive:true});
-})();
-
 // ========== VERSION LOG ==========
-var VER='4.7.1';
+var VER='4.61';
 var CHANGELOG_DATA=[
-  {v:'v4.7.1',d:'2026-06-23',t:'功能改进',items:['移动端左右滑动切换分类','滑入动画过渡','版本信息面板']},
-  {v:'v4.6.1',d:'2026-06-23',t:'功能改进',items:['换线路自动同步播放进度','TMDB分类本地缓存(12h)','登录cookie统一7天','启动本地秒解锁','Chrome兼容修复(搜索/播放器)','搜索/观影历史智能去重']},
+  {v:'v4.61',d:'2026-06-23',t:'功能改进',items:['换线路自动同步播放进度','TMDB分类本地缓存(12h)','登录cookie统一7天','启动本地秒解锁','Chrome兼容修复(搜索/播放器)','搜索/观影历史智能去重']},
   {v:'v4.5',d:'2026-06-22',t:'功能改进',items:['恢复宽泛JSON导入','登录死循环修复']},
   {v:'v4.4',d:'2026-06-21',t:'问题修复',items:['播放器幽灵重开','观影续播定位失败','电影名截断','单引号转义','去重正则修复','seekTimer竞态']},
   {v:'v4.3',d:'2026-06-21',t:'功能改进',items:['登录确认按钮','取消搜索默认聚焦','观影记录(续播定位)','海报高清大图','豆瓣搜索链接','宽泛JSON导入','回顶部按钮','搜索超时优化8s→6s']},
