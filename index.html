@@ -155,6 +155,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 .modal .msg.ok{display:block;background:rgba(52,199,89,.1);color:var(--green)}
 .modal .msg.err{display:block;background:rgba(255,59,48,.1);color:var(--red)}
 .modal .msg.loading{display:flex;align-items:center;gap:8px;background:rgba(0,102,204,.08);color:var(--accent);font-weight:500}
+/* 版本信息 */
+.version-info{margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--bg);border:1px solid var(--border)}
+.version-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.version-badge{display:inline-block;padding:4px 14px;border-radius:14px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;letter-spacing:.5px}
+.version-status{font-size:11px;color:var(--green);font-weight:500}
+.version-link{display:inline-flex;align-items:center;gap:4px;margin-top:10px;font-size:12px;color:var(--accent);text-decoration:none;font-weight:500}
+.version-link:hover{text-decoration:underline}
+.version-toggle{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);user-select:none}
+.version-toggle:hover{color:var(--accent)}
+.cl-list{margin-top:8px;font-size:11px;color:var(--text2);max-height:260px;overflow-y:auto}
+.cl-item{margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.cl-item:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.cl-item-head{font-weight:600;color:var(--text);margin-bottom:3px}
+.cl-item-body{font-size:11px;color:var(--text3);line-height:1.6}
 .import-spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
 .site-footer{text-align:center;padding:40px 20px 30px;color:var(--text3);font-size:11px;line-height:1.8;max-width:900px;margin:0 auto;opacity:.7}
 .results-header{font-size:13px;color:var(--text2);margin-bottom:12px;text-align:center}
@@ -312,6 +326,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
           <span id="siteArrow" style="font-size:10px;color:var(--text3);">▶</span>
         </div>
         <div id="siteList" style="display:none;max-height:180px;overflow-y:auto;margin-top:8px;font-size:13px;color:var(--text);line-height:2;padding:4px 0;border-top:1px solid var(--border);"></div>
+      </div>
+      <div class="version-info" id="versionInfo">
+        <div class="version-row">
+          <span class="version-badge" id="verBadge">v4.6.1</span>
+          <span class="version-status" id="verStatus">✓ 当前为最新版本</span>
+        </div>
+        <a class="version-link" href="https://github.com/ileonspace/LeonTV" target="_blank">📦 前往仓库</a>
+        <div class="version-toggle" onclick="toggleVersionLog()">
+          <span>📋 变更日志</span>
+          <span id="verArrow" style="font-size:10px;">▶</span>
+        </div>
+        <div class="cl-list" id="clList" style="display:none"></div>
       </div>
       <div style="text-align:center;margin-top:10px;">
         <button class="cat-pill" onclick="clearSites()" style="font-size:11px;color:var(--red);border-color:var(--red);">清除站点数据</button>
@@ -1257,6 +1283,39 @@ document.getElementById('regionSelect').addEventListener('change',function(){
   catPage={};catCache={};if(activeCat){var p=document.querySelector('#catNav [data-cat="'+activeCat+'"]');if(p) loadCategory(activeCat,p,true);}
 });
 document.getElementById('catNav').addEventListener('wheel',function(e){if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){e.preventDefault();document.getElementById('catNav').scrollLeft+=e.deltaY;}},{passive:false});
+
+// ========== VERSION LOG ==========
+var VER='4.6.1';
+var CHANGELOG_DATA=[
+  {v:'v4.6.1',d:'2026-06-23',t:'功能改进',items:['换线路自动同步播放进度','TMDB分类本地缓存(12h)','登录cookie统一7天','启动本地秒解锁','Chrome兼容修复(搜索/播放器)','搜索/观影历史智能去重']},
+  {v:'v4.5',d:'2026-06-22',t:'功能改进',items:['恢复宽泛JSON导入','登录死循环修复']},
+  {v:'v4.4',d:'2026-06-21',t:'问题修复',items:['播放器幽灵重开','观影续播定位失败','电影名截断','单引号转义','去重正则修复','seekTimer竞态']},
+  {v:'v4.3',d:'2026-06-21',t:'功能改进',items:['登录确认按钮','取消搜索默认聚焦','观影记录(续播定位)','海报高清大图','豆瓣搜索链接','宽泛JSON导入','回顶部按钮','搜索超时优化8s→6s']},
+  {v:'v4.1',d:'2026-06-21',t:'问题修复',items:['移动端溢出修复']},
+  {v:'v4.0',d:'2026-06-20',t:'功能改进',items:['搜索历史(胶囊标签)','移动端全面重设计','播放器自动跳源','双URL修复','设置面板重设计']},
+  {v:'v3.2',d:'2026-06-20',t:'功能改进',items:['7个预设系列分类','TMDB分类缓存','分类超时保护','防重复点击','流式渲染']},
+  {v:'v3.1',d:'2026-06-20',t:'问题修复',items:['分类按钮精致化','undefined统计修复']},
+  {v:'v3.0',d:'2026-06-20',t:'功能改进',items:['播放源修复','自动加载JSON配置','UI重建']},
+  {v:'v2.0',d:'2026-06-19',t:'问题修复',items:['批量详情获取']},
+  {v:'v1.0',d:'2026-06-19',t:'功能改进',items:['多源聚合搜索']}
+];
+function renderVersionLog(){
+  var h='';
+  for(var i=0;i<CHANGELOG_DATA.length;i++){
+    var c=CHANGELOG_DATA[i];
+    var tag=c.t==='功能改进'?'<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;background:rgba(52,199,89,.12);color:var(--green);margin-left:4px;">'+c.t+'</span>':'<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;background:rgba(255,149,0,.12);color:#FF8C00;margin-left:4px;">'+c.t+'</span>';
+    h+='<div class="cl-item"><div class="cl-item-head">'+c.v+' <span style="font-weight:400;font-size:10px;color:var(--text3);">'+c.d+'</span>'+tag+'</div><div class="cl-item-body">'+c.items.join(' · ')+'</div></div>';
+  }
+  document.getElementById('clList').innerHTML=h;
+}
+var verOpen=false;
+function toggleVersionLog(){
+  verOpen=!verOpen;
+  document.getElementById('clList').style.display=verOpen?'block':'none';
+  document.getElementById('verArrow').textContent=verOpen?'▼':'▶';
+  if(verOpen) renderVersionLog();
+}
+document.getElementById('verBadge').textContent='v'+VER;
 
 // ========== INIT ==========
 (function init(){
