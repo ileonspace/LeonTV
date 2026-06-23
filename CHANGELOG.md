@@ -109,6 +109,6 @@
 
 <details><summary><b>v1.0</b> (2026-06-19)</summary>
 
-- 初版：27站点聚合搜索
+- 初版：多源聚合搜索
 
 </details>
