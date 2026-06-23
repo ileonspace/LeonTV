@@ -1278,6 +1278,17 @@ document.getElementById('catNav').addEventListener('wheel',function(e){if(Math.a
   var savedUrl=localStorage.getItem('ms-sites-url');
   if(savedUrl) document.getElementById('sitesUrl').value=savedUrl;
   if(sitesLocked) lockSite();
+  // 清洗历史记录中的旧重复数据（仅启动执行一次）
+  (function cleanDupHistory(){
+    try{
+      var h=JSON.parse(localStorage.getItem('ms-history')||'[]');
+      if(h.length>1){var seen={},clean=[];for(var i=0;i<h.length;i++){var b=h[i].replace(/\d+$/,'');if(!seen[b]){seen[b]=true;clean.push(h[i]);}}if(clean.length!==h.length) localStorage.setItem('ms-history',JSON.stringify(clean));}
+    }catch(e){}
+    try{
+      var w=JSON.parse(localStorage.getItem('ms-watch')||'[]');
+      if(w.length>1){var seen={},clean=[];for(var i=0;i<w.length;i++){var n=w[i].vod_name||'';if(!seen[n]){seen[n]=true;clean.push(w[i]);}}if(clean.length!==w.length) localStorage.setItem('ms-watch',JSON.stringify(clean));}
+    }catch(e){}
+  })();
   applyCinema();
   lucide.createIcons();
   var stBtn=document.getElementById('scrollTopBtn');
