@@ -131,7 +131,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 .player-close:hover,.player-cinema-btn:hover{background:rgba(255,255,255,.25);color:#fff}
 .player-overlay.cinema .player-close,.player-overlay.cinema .player-cinema-btn{background:rgba(255,255,255,.12);color:#eee}
 .player-overlay.cinema .player-close:hover,.player-overlay.cinema .player-cinema-btn:hover{background:rgba(255,255,255,.25);color:#fff}
-.player-video{width:100%;display:block;max-height:70vh;background:#000}
+.player-video{width:100%;height:auto;aspect-ratio:16/9;display:block;max-height:70vh;background:#000}
 .player-info{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#DCE4EA;color:#5A6B7A;font-size:12px;flex-wrap:wrap;gap:8px;border-top:1px solid #D5E3EC;transition:background .3s,color .3s,border-color .3s}
 .player-overlay.cinema .player-info{background:#1a1a1a;color:#ccc;border-top-color:#333}
 .modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
@@ -226,8 +226,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 
 <div class="main">
   <div class="search-box" id="searchBox">
-    <div style="flex:1;position:relative;min-width:0;display:flex">
-      <input class="search-input" id="searchInput" placeholder="输入电影或电视剧名称..." onkeydown="if(event.key==='Enter')doSearch()" style="width:100%">
+    <div style="flex:1;position:relative;min-width:0">
+      <input class="search-input" id="searchInput" placeholder="输入电影或电视剧名称..." onkeydown="if(event.key==='Enter')doSearch()" autocomplete="off" style="width:100%">
       <div class="history-drop" id="historyDrop">
         <div class="history-head"><span>搜索记录</span><button onclick="event.stopPropagation();clearHistory()" class="history-clear-btn">全部清除</button></div>
         <div class="history-pills-wrap" id="historyList"></div>
@@ -348,7 +348,7 @@ async function doLogin(){
   var v=document.getElementById('loginInput').value;
   if(!v) return;
   // 设cookie让服务端验证 — LOGIN_PASSWORD环境变量控制
-  document.cookie='ltv_auth='+encodeURIComponent(v)+';path=/;max-age=86400';
+  document.cookie='ltv_auth='+encodeURIComponent(v)+';path=/;max-age=604800';
   try{
     var r=await fetch('/api/sites');
     if(!r.ok){document.getElementById('loginMsg').textContent='密码错误';document.cookie='ltv_auth=;max-age=0';return;}
@@ -1256,22 +1256,26 @@ document.getElementById('catNav').addEventListener('wheel',function(e){if(Math.a
 
 // ========== INIT ==========
 (function init(){
-  // 恢复站点：优先 localStorage，回退服务器
   var saved=localStorage.getItem('ms-sites');
   if(saved){
+    // 本地直接解锁（无需等服务器，秒开界面）
+    try{
+      var parsed=JSON.parse(saved);
+      var sites=Array.isArray(parsed)?parsed:(parsed.sites||[]);
+      if(sites.length>0){updateBadge(sites.length);unlockSite();}
+    }catch(e){}
+    // 后台静默同步服务器（刷新站点列表，不阻塞界面）
     try{
       fetch('/api/sites/load',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({json:saved})})
-      .then(function(r){return r.json();}).then(function(d){if(d.code===1){updateBadge(d.total);unlockSite();updateSiteList(d.data);}else{localStorage.removeItem('ms-sites');}})
-      .catch(function(){localStorage.removeItem('ms-sites');});
-    }catch(e){localStorage.removeItem('ms-sites');}
+      .then(function(r){return r.json();}).then(function(d){if(d.code===1){updateBadge(d.total);updateSiteList(d.data);}})
+      .catch(function(){/* 网络波动不影响已缓存数据 */});
+    }catch(e){}
   }
-  // 恢复保存的URL
   var savedUrl=localStorage.getItem('ms-sites-url');
   if(savedUrl) document.getElementById('sitesUrl').value=savedUrl;
   if(sitesLocked) lockSite();
-  applyCinema(); // 同步影院模式状态
+  applyCinema();
   lucide.createIcons();
-  // 滚动到顶部按钮
   var stBtn=document.getElementById('scrollTopBtn');
   window.addEventListener('scroll',function(){
     stBtn.classList.toggle('show',window.scrollY>400);
