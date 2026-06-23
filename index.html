@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LeonTV v4.6.1 — 2026-06-23 分类缓存+进度同步 -->
+<!-- LeonTV v4.7.1 — 2026-06-23 滑动切换分类 + 版本面板 -->
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -65,6 +65,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 .cat-card-rating{font-weight:700;color:#E6A000}
 .cat-more{grid-column:1/-1;display:flex;align-items:center;justify-content:center;min-height:60px;color:var(--text3);font-size:13px;cursor:pointer;border-radius:10px;border:2px dashed var(--border);transition:all .2s}
 .cat-more:hover{border-color:var(--accent);color:var(--accent)}
+/* 分类滑动切换 */
+.cat-grid.swipe-in-left{animation:swipeInL .25s ease-out}
+.cat-grid.swipe-in-right{animation:swipeInR .25s ease-out}
+@keyframes swipeInL{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+@keyframes swipeInR{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:translateX(0)}}
 .movie-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
 .movie-top{display:flex;gap:12px;margin-bottom:10px}
 .poster-wrap{position:relative;flex-shrink:0;width:160px;height:224px}
@@ -303,16 +308,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 <footer class="site-footer">
   <p>数据来源于第三方API，不存储任何影视资源，仅供技术学习</p>
   <p>内容来自互联网接口，版权归原权利人所有 · 如有侵权请联系删除</p>
-  <p style="opacity:.5;">LeonTV v4.6.1</p>
+  <p style="opacity:.5;">LeonTV v4.7.1</p>
 </footer>
 
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
-    <div class="modal-header"><h3><i data-lucide="settings"></i> 站点配置 <span style="font-size:11px;color:var(--text3);font-weight:400;">v4.6.1</span></h3><button class="modal-close" onclick="closeSettings()"><i data-lucide="x"></i></button></div>
+    <div class="modal-header"><h3><i data-lucide="settings"></i> 站点配置 <span style="font-size:11px;color:var(--text3);font-weight:400;">v4.7.1</span></h3><button class="modal-close" onclick="closeSettings()"><i data-lucide="x"></i></button></div>
     <div class="modal-body">
       <div class="version-info" id="versionInfo" onclick="toggleVersionLog()">
         <div class="version-row">
-          <span class="version-badge" id="verBadge">v4.6.1</span>
+          <span class="version-badge" id="verBadge">v4.7.1</span>
           <span class="version-status" id="verStatus">最新</span>
           <a class="version-link" href="https://github.com/ileonspace/LeonTV" target="_blank" onclick="event.stopPropagation()">前往仓库</a>
           <span class="version-arrow" id="verArrow">▶</span>
@@ -1285,9 +1290,39 @@ document.getElementById('regionSelect').addEventListener('change',function(){
 });
 document.getElementById('catNav').addEventListener('wheel',function(e){if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){e.preventDefault();document.getElementById('catNav').scrollLeft+=e.deltaY;}},{passive:false});
 
+// ========== CAT SWIPE (移动端左右滑动切换分类) ==========
+(function initSwipe(){
+  var startX=0,startY=0,swiping=false;
+  document.addEventListener('touchstart',function(e){
+    if(!activeCat||catLoading||e.touches.length!==1) return;
+    startX=e.touches[0].clientX;startY=e.touches[0].clientY;swiping=true;
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(!swiping) return;
+    if(Math.abs(e.touches[0].clientY-startY)>Math.abs(e.touches[0].clientX-startX)){swiping=false;}
+  },{passive:true});
+  document.addEventListener('touchend',function(e){
+    if(!swiping||catLoading) return;swiping=false;
+    var dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;
+    if(Math.abs(dx)<40||Math.abs(dy)>Math.abs(dx)) return;
+    // 获取当前分类在所有pill中的顺序
+    var pills=Array.from(document.querySelectorAll('#catNav .cat-pill[data-cat]'));
+    var idx=-1;for(var i=0;i<pills.length;i++){if(pills[i].dataset.cat===activeCat){idx=i;break;}}
+    if(idx<0) return;
+    var nextIdx=dx<0?idx+1:idx-1;
+    if(nextIdx<0||nextIdx>=pills.length) return;
+    var nextCat=pills[nextIdx].dataset.cat;
+    // 添加滑入动画
+    var grid=document.querySelector('.cat-grid');
+    if(grid){grid.classList.remove('swipe-in-left','swipe-in-right');void grid.offsetWidth;grid.classList.add(dx<0?'swipe-in-left':'swipe-in-right');}
+    catPage={};loadCategory(nextCat,pills[nextIdx]);
+  },{passive:true});
+})();
+
 // ========== VERSION LOG ==========
-var VER='4.6.1';
+var VER='4.7.1';
 var CHANGELOG_DATA=[
+  {v:'v4.7.1',d:'2026-06-23',t:'功能改进',items:['移动端左右滑动切换分类','滑入动画过渡','版本信息面板']},
   {v:'v4.6.1',d:'2026-06-23',t:'功能改进',items:['换线路自动同步播放进度','TMDB分类本地缓存(12h)','登录cookie统一7天','启动本地秒解锁','Chrome兼容修复(搜索/播放器)','搜索/观影历史智能去重']},
   {v:'v4.5',d:'2026-06-22',t:'功能改进',items:['恢复宽泛JSON导入','登录死循环修复']},
   {v:'v4.4',d:'2026-06-21',t:'问题修复',items:['播放器幽灵重开','观影续播定位失败','电影名截断','单引号转义','去重正则修复','seekTimer竞态']},
