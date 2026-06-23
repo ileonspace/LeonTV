@@ -66,10 +66,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 .cat-more{grid-column:1/-1;display:flex;align-items:center;justify-content:center;min-height:60px;color:var(--text3);font-size:13px;cursor:pointer;border-radius:10px;border:2px dashed var(--border);transition:all .2s}
 .cat-more:hover{border-color:var(--accent);color:var(--accent)}
 /* 分类滑动切换 */
-.cat-grid.swipe-in-left{animation:swipeInL .25s ease-out}
-.cat-grid.swipe-in-right{animation:swipeInR .25s ease-out}
-@keyframes swipeInL{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
-@keyframes swipeInR{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:translateX(0)}}
+.results-area.swiping{transition:none!important}
+.results-area.snap-back{transition:transform .25s ease-out!important;transform:translateX(0)}
+.results-area.snap-next{transition:transform .25s ease-out!important}
+.swipe-indicator{position:fixed;top:50%;transform:translateY(-50%);z-index:150;font-size:28px;color:var(--accent);opacity:0;pointer-events:none;transition:opacity .15s}
 .movie-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
 .movie-top{display:flex;gap:12px;margin-bottom:10px}
 .poster-wrap{position:relative;flex-shrink:0;width:160px;height:224px}
@@ -1290,32 +1290,53 @@ document.getElementById('regionSelect').addEventListener('change',function(){
 });
 document.getElementById('catNav').addEventListener('wheel',function(e){if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){e.preventDefault();document.getElementById('catNav').scrollLeft+=e.deltaY;}},{passive:false});
 
-// ========== CAT SWIPE (移动端左右滑动切换分类) ==========
+// ========== CAT SWIPE (移动端跟手滑动切换分类) ==========
 (function initSwipe(){
-  var startX=0,startY=0,swiping=false;
+  var startX=0,startY=0,dragging=false,area=document.getElementById('resultsArea'),pills=[];
+  var SWIPE_THRESHOLD=60,MAX_DRAG=120;
+  function getPills(){return Array.from(document.querySelectorAll('#catNav .cat-pill[data-cat]'));}
+  function curIdx(){for(var i=0;i<pills.length;i++){if(pills[i].dataset.cat===activeCat) return i;}return -1;}
+
   document.addEventListener('touchstart',function(e){
     if(!activeCat||catLoading||e.touches.length!==1) return;
-    startX=e.touches[0].clientX;startY=e.touches[0].clientY;swiping=true;
+    startX=e.touches[0].clientX;startY=e.touches[0].clientY;dragging=true;
+    pills=getPills();area.style.transition='none';
   },{passive:true});
+
   document.addEventListener('touchmove',function(e){
-    if(!swiping) return;
-    if(Math.abs(e.touches[0].clientY-startY)>Math.abs(e.touches[0].clientX-startX)){swiping=false;}
+    if(!dragging||catLoading) return;
+    var dx=e.touches[0].clientX-startX,dy=e.touches[0].clientY-startY;
+    if(Math.abs(dy)>Math.abs(dx)*1.3){dragging=false;area.style.transform='';return;}
+    var clamped=Math.max(-MAX_DRAG,Math.min(MAX_DRAG,dx));
+    area.style.transform='translateX('+clamped+'px)';
+    // 同步滚动分类栏
+    var idx=curIdx();if(idx<0) return;
+    var targetIdx=dx<0?idx+1:idx-1;
+    if(targetIdx>=0&&targetIdx<pills.length){
+      pills[targetIdx].scrollIntoView({inline:'nearest',behavior:'smooth',block:'nearest'});
+      pills.forEach(function(p,i){p.classList.toggle('active',i===targetIdx);});
+      pills[idx].classList.add('active');
+    }
   },{passive:true});
+
   document.addEventListener('touchend',function(e){
-    if(!swiping||catLoading) return;swiping=false;
+    if(!dragging||catLoading){dragging=false;return;}
+    dragging=false;
     var dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;
-    if(Math.abs(dx)<40||Math.abs(dy)>Math.abs(dx)) return;
-    // 获取当前分类在所有pill中的顺序
-    var pills=Array.from(document.querySelectorAll('#catNav .cat-pill[data-cat]'));
-    var idx=-1;for(var i=0;i<pills.length;i++){if(pills[i].dataset.cat===activeCat){idx=i;break;}}
-    if(idx<0) return;
+    if(Math.abs(dx)<SWIPE_THRESHOLD||Math.abs(dy)>Math.abs(dx)*1.2){
+      area.style.transition='transform .25s ease-out';area.style.transform='translateX(0)';return;
+    }
+    var idx=curIdx();if(idx<0){area.style.transform='';return;}
     var nextIdx=dx<0?idx+1:idx-1;
-    if(nextIdx<0||nextIdx>=pills.length) return;
-    var nextCat=pills[nextIdx].dataset.cat;
-    // 添加滑入动画
-    var grid=document.querySelector('.cat-grid');
-    if(grid){grid.classList.remove('swipe-in-left','swipe-in-right');void grid.offsetWidth;grid.classList.add(dx<0?'swipe-in-left':'swipe-in-right');}
-    catPage={};loadCategory(nextCat,pills[nextIdx]);
+    if(nextIdx<0||nextIdx>=pills.length){area.style.transition='transform .25s ease-out';area.style.transform='translateX(0)';return;}
+    // 飞出旧内容，加载新分类
+    var outX=dx<0?-area.offsetWidth:area.offsetWidth;
+    area.style.transition='transform .25s ease-out';
+    area.style.transform='translateX('+outX+'px)';
+    setTimeout(function(){
+      area.style.transition='none';area.style.transform='translateX(0)';
+      catPage={};loadCategory(pills[nextIdx].dataset.cat,pills[nextIdx]);
+    },250);
   },{passive:true});
 })();
 
