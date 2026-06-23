@@ -1256,7 +1256,7 @@ function restoreCustomCats(){
 
 // ========== CAT DRAG ==========
 function initCatDrag(){
-  var nav=document.getElementById('catNav'),saved=localStorage.getItem('ms-cat-order');
+  var nav=document.getElementById('catNav'),saved=localStorage.getItem('ms-cat-order-v2');
   if(saved){var order=JSON.parse(saved),addBtn=document.getElementById('addCatBtn');order.forEach(function(cat){var pill=nav.querySelector('[data-cat="'+cat+'"]');if(pill) nav.insertBefore(pill,addBtn);});}
   var dragPill=null;
   nav.addEventListener('dragstart',function(e){
@@ -1265,7 +1265,7 @@ function initCatDrag(){
   });
   nav.addEventListener('dragend',function(){
     if(dragPill){dragPill.classList.remove('dragging');document.querySelectorAll('.cat-pill.drag-over').forEach(function(p){p.classList.remove('drag-over');});
-    var order=Array.from(nav.querySelectorAll('.cat-pill[data-cat]')).map(function(p){return p.dataset.cat;});localStorage.setItem('ms-cat-order',JSON.stringify(order));dragPill=null;}
+    var order=Array.from(nav.querySelectorAll('.cat-pill[data-cat]')).map(function(p){return p.dataset.cat;});localStorage.setItem('ms-cat-order-v2',JSON.stringify(order));dragPill=null;}
   });
   nav.addEventListener('dragover',function(e){e.preventDefault();var pill=e.target.closest('.cat-pill');if(pill&&pill!==dragPill){document.querySelectorAll('.cat-pill.drag-over').forEach(function(p){p.classList.remove('drag-over');});pill.classList.add('drag-over');}});
   nav.addEventListener('drop',function(e){e.preventDefault();var target=e.target.closest('.cat-pill');if(target&&target!==dragPill&&dragPill){var rect=target.getBoundingClientRect();if(e.clientX<rect.left+rect.width/2){nav.insertBefore(dragPill,target);}else{nav.insertBefore(dragPill,target.nextSibling);}}document.querySelectorAll('.cat-pill.drag-over').forEach(function(p){p.classList.remove('drag-over');});});
