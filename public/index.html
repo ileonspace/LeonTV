@@ -308,12 +308,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
-    <div class="modal-header"><h3><i data-lucide="settings"></i> 站点配置 <span style="font-size:11px;color:var(--text3);font-weight:400;">v4.61</span></h3><button class="modal-close" onclick="closeSettings()"><i data-lucide="x"></i></button></div>
+    <div class="modal-header"><h3><i data-lucide="settings"></i> 站点配置 <span style="font-size:11px;color:var(--text3);font-weight:400;" id="modalVer"></span></h3><button class="modal-close" onclick="closeSettings()"><i data-lucide="x"></i></button></div>
     <div class="modal-body">
       <div class="version-info" id="versionInfo" onclick="toggleVersionLog()">
         <div class="version-row">
           <span class="version-badge" id="verBadge">v4.61</span>
-          <span class="version-status" id="verStatus">最新</span>
+          <span class="version-status" id="verStatus"></span>
           <a class="version-link" href="https://github.com/ileonspace/LeonTV" target="_blank" onclick="event.stopPropagation()">前往仓库</a>
           <span class="version-arrow" id="verArrow">▶</span>
         </div>
@@ -1256,7 +1256,8 @@ function restoreCustomCats(){
 
 // ========== CAT DRAG ==========
 function initCatDrag(){
-  var nav=document.getElementById('catNav'),saved=localStorage.getItem('ms-cat-order-v2');
+  var orderKey='ms-cat-order-'+VER;
+  var nav=document.getElementById('catNav'),saved=localStorage.getItem(orderKey);
   if(saved){var order=JSON.parse(saved),addBtn=document.getElementById('addCatBtn');order.forEach(function(cat){var pill=nav.querySelector('[data-cat="'+cat+'"]');if(pill) nav.insertBefore(pill,addBtn);});}
   var dragPill=null;
   nav.addEventListener('dragstart',function(e){
@@ -1265,11 +1266,12 @@ function initCatDrag(){
   });
   nav.addEventListener('dragend',function(){
     if(dragPill){dragPill.classList.remove('dragging');document.querySelectorAll('.cat-pill.drag-over').forEach(function(p){p.classList.remove('drag-over');});
-    var order=Array.from(nav.querySelectorAll('.cat-pill[data-cat]')).map(function(p){return p.dataset.cat;});localStorage.setItem('ms-cat-order-v2',JSON.stringify(order));dragPill=null;}
+    var order=Array.from(nav.querySelectorAll('.cat-pill[data-cat]')).map(function(p){return p.dataset.cat;});localStorage.setItem(orderKey,JSON.stringify(order));dragPill=null;}
   });
   nav.addEventListener('dragover',function(e){e.preventDefault();var pill=e.target.closest('.cat-pill');if(pill&&pill!==dragPill){document.querySelectorAll('.cat-pill.drag-over').forEach(function(p){p.classList.remove('drag-over');});pill.classList.add('drag-over');}});
   nav.addEventListener('drop',function(e){e.preventDefault();var target=e.target.closest('.cat-pill');if(target&&target!==dragPill&&dragPill){var rect=target.getBoundingClientRect();if(e.clientX<rect.left+rect.width/2){nav.insertBefore(dragPill,target);}else{nav.insertBefore(dragPill,target.nextSibling);}}document.querySelectorAll('.cat-pill.drag-over').forEach(function(p){p.classList.remove('drag-over');});});
 }
+var VER='4.61';
 initCatDrag();restoreCustomCats();
 
 // ========== EVENT LISTENERS ==========
@@ -1286,7 +1288,6 @@ document.getElementById('regionSelect').addEventListener('change',function(){
 document.getElementById('catNav').addEventListener('wheel',function(e){if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){e.preventDefault();document.getElementById('catNav').scrollLeft+=e.deltaY;}},{passive:false});
 
 // ========== VERSION LOG ==========
-var VER='4.61';
 var CHANGELOG_DATA=[
   {v:'v4.61',d:'2026-06-23',t:'功能改进',items:['换线路自动同步播放进度','TMDB分类本地缓存(12h)','登录cookie统一7天','启动本地秒解锁','Chrome兼容修复(搜索/播放器)','搜索/观影历史智能去重']},
   {v:'v4.5',d:'2026-06-22',t:'功能改进',items:['恢复宽泛JSON导入','登录死循环修复']},
@@ -1319,6 +1320,8 @@ function toggleVersionLog(){
   if(verOpen) setTimeout(function(){document.getElementById('clList').scrollIntoView({behavior:'smooth',block:'nearest'});},100);
 }
 document.getElementById('verBadge').textContent='v'+VER;
+document.getElementById('verStatus').textContent='✓ v'+VER;
+document.getElementById('modalVer').textContent='v'+VER;
 
 // ========== INIT ==========
 (function init(){
