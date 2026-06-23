@@ -720,14 +720,14 @@ function getWatchHistory(){try{return JSON.parse(localStorage.getItem('ms-watch'
 function saveWatchHistory(arr){localStorage.setItem('ms-watch',JSON.stringify(arr.slice(0,MAX_WATCH)));}
 function addWatchRecord(vodName,epLabel,epNum,timeSec){
   var h=getWatchHistory();timeSec=timeSec||0;
-  h=h.filter(function(x){return !(x.vod_name===vodName&&x.epNum===epNum);});
+  h=h.filter(function(x){return x.vod_name!==vodName;});
   var disp=timeSec>0?fmtTime(timeSec):'00:00';
   h.unshift({vod_name:vodName,epLabel:epLabel,epNum:epNum,time:timeSec,timeDisplay:disp,timestamp:Date.now()});
   saveWatchHistory(h);renderHistory();
 }
 function updateWatchTime(vodName,epLabel,epNum,timeSec){
   var h=getWatchHistory();
-  for(var i=0;i<h.length;i++){if(h[i].vod_name===vodName&&h[i].epNum===epNum){h[i].time=timeSec;h[i].timeDisplay=fmtTime(timeSec);h[i].timestamp=Date.now();saveWatchHistory(h);return;}}
+  for(var i=0;i<h.length;i++){if(h[i].vod_name===vodName){h[i].epLabel=epLabel;h[i].epNum=epNum;h[i].time=timeSec;h[i].timeDisplay=fmtTime(timeSec);h[i].timestamp=Date.now();saveWatchHistory(h);return;}}
 }
 function fmtTime(s){var m=Math.floor(s/60),sec=Math.floor(s%60);return (m<10?'0':'')+m+':'+(sec<10?'0':'')+sec;}
 function delOneWatchHistory(idx,ev){ev.stopPropagation();var h=getWatchHistory();h.splice(idx,1);saveWatchHistory(h);renderHistory();}
