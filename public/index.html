@@ -156,16 +156,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 .modal .msg.err{display:block;background:rgba(255,59,48,.1);color:var(--red)}
 .modal .msg.loading{display:flex;align-items:center;gap:8px;background:rgba(0,102,204,.08);color:var(--accent);font-weight:500}
 /* 版本信息 */
-.version-info{margin-bottom:14px;padding:10px 14px;border-radius:10px;background:var(--bg);border:1px solid var(--border);cursor:pointer;user-select:none}
+.version-info{margin-bottom:14px;padding:8px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--border);cursor:pointer;user-select:none}
 .version-info:hover{border-color:var(--accent)}
-.version-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.version-badge{display:inline-block;padding:4px 14px;border-radius:14px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;letter-spacing:.5px}
-.version-status{font-size:11px;color:var(--green);font-weight:500}
-.version-arrow{font-size:10px;color:var(--text3);margin-left:auto;transition:transform .2s}
-.version-link{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--accent);text-decoration:none;font-weight:500}
+.version-row{display:flex;align-items:center;gap:8px}
+.version-badge{display:inline-block;padding:3px 12px;border-radius:12px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;letter-spacing:.3px;flex-shrink:0}
+.version-status{font-size:11px;color:var(--green);font-weight:600;flex-shrink:0}
+.version-link{font-size:11px;color:var(--accent);text-decoration:none;font-weight:500;margin-left:auto;flex-shrink:0}
 .version-link:hover{text-decoration:underline}
-.cl-list{margin-top:8px;padding-top:6px;border-top:1px solid var(--border)}
-.cl-item{padding:5px 0;border-bottom:1px solid var(--border)}
+.version-arrow{font-size:10px;color:var(--text3);flex-shrink:0}
+.cl-list{margin-top:8px;padding-top:6px;border-top:1px solid var(--border);background:transparent}
+.cl-item{padding:5px 0;border-bottom:1px solid var(--border);background:transparent}
 .cl-item:last-child{border-bottom:none}
 .cl-item-head{font-weight:600;color:var(--text);margin-bottom:2px;font-size:12px}
 .cl-item-body{font-size:11px;color:var(--text2);line-height:1.5}
@@ -309,10 +309,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
       <div class="version-info" id="versionInfo" onclick="toggleVersionLog()">
         <div class="version-row">
           <span class="version-badge" id="verBadge">v4.6.1</span>
-          <span class="version-status" id="verStatus">✓ 当前为最新版本</span>
+          <span class="version-status" id="verStatus">最新</span>
+          <a class="version-link" href="https://github.com/ileonspace/LeonTV" target="_blank" onclick="event.stopPropagation()">前往仓库</a>
           <span class="version-arrow" id="verArrow">▶</span>
         </div>
-        <a class="version-link" href="https://github.com/ileonspace/LeonTV" target="_blank" onclick="event.stopPropagation()">📦 前往仓库</a>
         <div class="cl-list" id="clList" style="display:none"></div>
       </div>
       <div class="modal-tabs">
