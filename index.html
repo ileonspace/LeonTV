@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LeonTV v4.61 — 2026-06-23 分类缓存+进度同步 -->
+<!-- LeonTV v4.62 — 2026-07-22 投屏全面修复 -->
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -303,7 +303,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
 <footer class="site-footer">
   <p>数据来源于第三方API，不存储任何影视资源，仅供技术学习</p>
   <p>内容来自互联网接口，版权归原权利人所有 · 如有侵权请联系删除</p>
-  <p style="opacity:.5;">LeonTV v4.61</p>
+  <p style="opacity:.5;">LeonTV v4.62</p>
 </footer>
 
 <div class="modal-overlay" id="settingsModal">
@@ -312,7 +312,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
     <div class="modal-body">
       <div class="version-info" id="versionInfo" onclick="toggleVersionLog()">
         <div class="version-row">
-          <span class="version-badge" id="verBadge">v4.61</span>
+          <span class="version-badge" id="verBadge">v4.62</span>
           <span class="version-status" id="verStatus"></span>
           <a class="version-link" href="https://github.com/ileonspace/LeonTV" target="_blank" onclick="event.stopPropagation()">前往仓库</a>
           <span class="version-arrow" id="verArrow">▶</span>
@@ -354,7 +354,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
       <button class="player-close" onclick="event.stopPropagation();closePlayer()"><i data-lucide="x"></i></button>
     </div>
     <video class="player-video" id="videoPlayer" controls autoplay playsinline x-webkit-airplay="allow"></video>
-    <div class="player-info"><span id="playerTitle"></span></div>
+    <div class="player-info"><span id="playerTitle"></span><span id="castStatus" style="display:none;color:#f97316;font-weight:600;font-size:11px;">● 投屏中</span></div>
   </div>
 </div>
 
@@ -598,6 +598,18 @@ function applyCinema(){
   b.title=cinemaMode?'退出影院模式':'影院模式';lucide.createIcons();
 }
 function toggleCinema(){cinemaMode=!cinemaMode;localStorage.setItem('ms-cinema',cinemaMode?'1':'0');applyCinema();}
+
+/* ── Platform detection for casting ── */
+function _isIOS(){return /iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);}
+function _isSafari(){return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);}
+function _isAndroid(){return /Android/.test(navigator.userAgent);}
+function _useNativeHLS(){
+  if(_isIOS())return true;
+  if(_isSafari())return true;
+  if(_isAndroid())return !!document.createElement('video').canPlayType('application/vnd.apple.mpegurl');
+  return false;
+}
+
 function doPlay(urls,title,idx){
   idx=idx||0;if(idx>=urls.length){alert('所有线路均无法播放');return;}
   var o=document.getElementById('playerOverlay'),v=document.getElementById('videoPlayer');
@@ -615,10 +627,13 @@ function doPlay(urls,title,idx){
   v._playTimer=setTimeout(function(){if(v.paused||v.currentTime<0.5)next();},10000);
   v.ontimeupdate=function(){if(v.currentTime>0.5&&v._playTimer){clearTimeout(v._playTimer);v._playTimer=null;}};
   if(url.indexOf('.m3u8')>=0){
-    if(Hls.isSupported()){var h=new Hls({enableWorker:true,lowLatencyMode:false});h.loadSource(url);h.attachMedia(v);v._hls=h;
+    if(_useNativeHLS()){
+      // iOS/Safari/Android: native HLS → AirPlay/Cast works natively
+      v.src=url;v._currentUrl=url;v._isM3u8=true;
+    }else if(Hls.isSupported()){var h=new Hls({enableWorker:true,lowLatencyMode:false});h.loadSource(url);h.attachMedia(v);v._hls=h;v._currentUrl=url;v._isM3u8=true;
       h.on(Hls.Events.ERROR,function(e,d){if(d.fatal||d.type===Hls.ErrorTypes.NETWORK_ERROR)next();});
       h.on(Hls.Events.MANIFEST_PARSED,function(){if(v._playTimer){clearTimeout(v._playTimer);v._playTimer=null;}if(v._seekTo>0){v.currentTime=v._seekTo;v._seekTo=0;}});
-    }else if(v.canPlayType('application/vnd.apple.mpegurl')){v.src=url;}
+    }else if(v.canPlayType('application/vnd.apple.mpegurl')){v.src=url;v._currentUrl=url;v._isM3u8=true;}
     else{next();return;}
   }else{v.src=url;}
   // 非HLS.js源：loadedmetadata后同步进度
@@ -627,8 +642,7 @@ function doPlay(urls,title,idx){
 }
 function castVideo(){
   var v=document.getElementById('videoPlayer');
-  if(v.webkitShowPlaybackTargetPicker){v.webkitShowPlaybackTargetPicker();return;}
-  if(v.paused){v.play();}else{v.pause();setTimeout(function(){v.play();},100);}
+  if(v.webkitShowPlaybackTargetPicker){v.webkitShowPlaybackTargetPicker();}
 }
 function showPoster(url){
   if(!url) return;
@@ -652,9 +666,38 @@ function closePlayer(){
   if(watchTimer){clearInterval(watchTimer);watchTimer=null;}
   currentWatch=null;
   if(v._hls){v._hls.destroy();v._hls=null;}
-  v.pause();v.src='';v.onerror=null;v._seekTo=0;
+  v.pause();v.src='';v.onerror=null;v._currentUrl='';v._isM3u8=false;v._seekTo=0;
   document.getElementById('playerOverlay').classList.remove('open');
 }
+
+/* ── Cast / AirPlay Monitoring ── */
+function setupCastSupport(){
+  var v=document.getElementById('videoPlayer');
+  window.__castingActive=false;
+  if(v.webkitShowPlaybackTargetPicker){
+    v.addEventListener('webkitCurrentPlaybackTargetIsWirelessChanged',function(){
+      var isWireless=v.webkitCurrentPlaybackTargetIsWireless;
+      window.__castingActive=isWireless;
+      var s=document.getElementById('castStatus');
+      if(s)s.style.display=isWireless?'inline':'none';
+      if(isWireless&&v._isM3u8&&v._hls){
+        var pos=v.currentTime,paused=v.paused;
+        v._hls.destroy();v._hls=null;
+        v.src=v._currentUrl;
+        v.currentTime=pos;
+        if(paused)v.pause();
+      }
+    });
+  }
+}
+
+window.addEventListener('beforeunload',function(e){
+  if(window.__castingActive){
+    e.preventDefault();
+    e.returnValue='投屏正在播放中，关闭页面将中断投屏';
+    return e.returnValue;
+  }
+});
 
 // ========== UTILS ==========
 function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
@@ -1271,7 +1314,7 @@ function initCatDrag(){
   nav.addEventListener('dragover',function(e){e.preventDefault();var pill=e.target.closest('.cat-pill');if(pill&&pill!==dragPill){document.querySelectorAll('.cat-pill.drag-over').forEach(function(p){p.classList.remove('drag-over');});pill.classList.add('drag-over');}});
   nav.addEventListener('drop',function(e){e.preventDefault();var target=e.target.closest('.cat-pill');if(target&&target!==dragPill&&dragPill){var rect=target.getBoundingClientRect();if(e.clientX<rect.left+rect.width/2){nav.insertBefore(dragPill,target);}else{nav.insertBefore(dragPill,target.nextSibling);}}document.querySelectorAll('.cat-pill.drag-over').forEach(function(p){p.classList.remove('drag-over');});});
 }
-var VER='4.61';
+var VER='4.62';
 initCatDrag();restoreCustomCats();
 
 // ========== EVENT LISTENERS ==========
@@ -1289,6 +1332,7 @@ document.getElementById('catNav').addEventListener('wheel',function(e){if(Math.a
 
 // ========== VERSION LOG ==========
 var CHANGELOG_DATA=[
+  {v:'v4.62',d:'2026-07-22',t:'功能改进',items:['📺 投屏全面修复(iOS AirPlay + Android Cast)','双引擎策略: 移动端原生HLS / 桌面HLS.js','桌面Safari AirPlay自动切换监测']},
   {v:'v4.61',d:'2026-06-23',t:'功能改进',items:['换线路自动同步播放进度','TMDB分类本地缓存(12h)','登录cookie统一7天','启动本地秒解锁','Chrome兼容修复(搜索/播放器)','搜索/观影历史智能去重']},
   {v:'v4.5',d:'2026-06-22',t:'功能改进',items:['恢复宽泛JSON导入','登录死循环修复']},
   {v:'v4.4',d:'2026-06-21',t:'问题修复',items:['播放器幽灵重开','观影续播定位失败','电影名截断','单引号转义','去重正则修复','seekTimer竞态']},
@@ -1325,6 +1369,7 @@ document.getElementById('modalVer').textContent='v'+VER;
 
 // ========== INIT ==========
 (function init(){
+  setupCastSupport();
   var saved=localStorage.getItem('ms-sites');
   if(saved){
     // 本地直接解锁（无需等服务器，秒开界面）
