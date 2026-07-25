@@ -1,6 +1,21 @@
 # LeonTV 版本记录
 
-## v4.62 (2026-07-22) 🔖 当前版本
+## v4.63 (2026-07-25) 🔖 当前版本
+- 🎨 **Emil设计工程打磨**：系统性提升UI流畅感+反馈感+专业感
+- ✨ 按钮按压反馈：12处可点击元素添加 `:active` scale(0.97) 触感
+- 🎬 弹窗动画系统：播放器/设置/登录/海报4个遮罩从闪现→淡入淡出
+- 🎯 播放器入场增强：scale(0.95)→1 从触发位置展开，非中心弹出
+- 📋 历史下拉菜单：display切换→fadeInDown 150ms 柔和过渡
+- 🔝 回顶按钮：display切换→opacity+translateY 淡入淡出
+- 📊 状态栏自动淡出：display:none→opacity过渡+transitionend清理
+- 🎭 海报灯箱：scale(0.92)→1 缩放入场，配合X按钮按压反馈
+- 🌓 主题切换：添加 `--ease-out`/`--ease-in-out` 自定义缓动token
+- ♿ **无障碍**: 全局 `prefers-reduced-motion` 支持
+- 🔧 **性能**: 6处 `transition:all` 全部替换为精确属性，零布局抖动
+- 🖱️ 设置面板增强: 点击遮罩背景关闭 + Escape键关闭
+- 📦 版本号统一管理 v4.63
+
+## v4.62 (2026-07-22)
 - 📺 投屏全面修复：iOS AirPlay + Android Cast 正常投屏到电视
 - 🔧 双引擎播放策略：移动端/Safari 原生 HLS，桌面端 HLS.js
 - 🛡️ 桌面 Safari AirPlay 自动切换监测，无缝衔接
